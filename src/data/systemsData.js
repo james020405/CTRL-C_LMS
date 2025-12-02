@@ -1,0 +1,51 @@
+export const automotiveSystems = [
+    {
+        id: 'engine',
+        name: 'Engine System',
+        icon: 'Gauge',
+        color: '#ef4444',
+        description: 'The heart of the vehicle - converts fuel into mechanical energy',
+    },
+    {
+        id: 'brakes',
+        name: 'Brake System',
+        icon: 'Disc',
+        color: '#dc2626',
+        description: 'Critical safety system that slows and stops the vehicle',
+    },
+    {
+        id: 'transmission',
+        name: 'Transmission',
+        icon: 'Settings',
+        color: '#f97316',
+        description: 'Transfers power from engine to wheels with variable gear ratios',
+    },
+    {
+        id: 'suspension',
+        name: 'Suspension',
+        icon: 'Activity',
+        color: '#f59e0b',
+        description: 'Absorbs road shocks and maintains tire contact',
+    },
+    {
+        id: 'steering',
+        name: 'Steering System',
+        icon: 'Target',
+        color: '#84cc16',
+        description: 'Allows driver to control vehicle direction',
+    },
+    {
+        id: 'electrical',
+        name: 'Electrical',
+        icon: 'Zap',
+        color: '#3b82f6',
+        description: 'Powers all electrical components and systems',
+    },
+    {
+        id: 'cooling',
+        name: 'Cooling System',
+        icon: 'Thermometer',
+        color: '#06b6d4',
+        description: 'Prevents engine overheating and maintains optimal temperature',
+    },
+];

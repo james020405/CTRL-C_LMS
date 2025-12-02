@@ -1,68 +1,71 @@
-import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Activity, BookOpen, PlayCircle, Stethoscope, LogOut } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { Sidebar, SidebarBody, SidebarLink } from '../ui/Sidebar';
 import { cn } from '../../lib/utils';
 
 export default function StudentLayout() {
     const navigate = useNavigate();
+    const [open, setOpen] = useState(false);
 
     const navItems = [
-        { to: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/student/systems', icon: Activity, label: '7 Systems' },
-        { to: '/student/study', icon: BookOpen, label: 'Flashcards' },
-        { to: '/student/simulator', icon: PlayCircle, label: 'Simulator' },
-        { to: '/student/diagnostics', icon: Stethoscope, label: 'Diagnostics' },
+        { href: '/student/dashboard', icon: <LayoutDashboard className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" />, label: 'Dashboard' },
+        { href: '/student/systems', icon: <Activity className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" />, label: '7 Systems' },
+        { href: '/student/study', icon: <BookOpen className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" />, label: 'Flashcards' },
+        { href: '/student/simulator', icon: <PlayCircle className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" />, label: 'Simulator' },
+        { href: '/student/diagnostics', icon: <Stethoscope className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" />, label: 'Diagnostics' },
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col fixed h-full z-20">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                        C
+        <div className={cn(
+            "flex flex-col md:flex-row bg-slate-50 dark:bg-slate-900 w-full flex-1 overflow-hidden",
+            "h-screen"
+        )}>
+            <Sidebar open={open} setOpen={setOpen}>
+                <SidebarBody className="justify-between gap-10">
+                    <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+                        <Logo />
+                        <div className="mt-8 flex flex-col gap-2">
+                            {navItems.map((link, idx) => (
+                                <SidebarLink key={idx} link={link} />
+                            ))}
+                        </div>
                     </div>
-                    <span className="font-bold text-slate-800 dark:text-white text-lg">Ctrl C Academy</span>
-                </div>
-
-                <nav className="flex-1 p-4 space-y-2">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.to}
-                            to={item.to}
-                            className={({ isActive }) => cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium",
-                                isActive
-                                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                            )}
-                        >
-                            <item.icon size={20} />
-                            {item.label}
-                        </NavLink>
-                    ))}
-                </nav>
-
-                <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                    <div className="flex items-center justify-between px-4">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Theme</span>
-                        <ThemeToggle />
+                    <div className="flex flex-col gap-4">
+                        <div className={cn("flex items-center", open ? "justify-between px-2" : "justify-center")}>
+                            {open && <span className="text-sm text-slate-500 dark:text-slate-400">Theme</span>}
+                            <ThemeToggle collapsed={!open} />
+                        </div>
+                        <SidebarLink
+                            link={{
+                                label: "Sign Out",
+                                href: "#",
+                                icon: <LogOut className="text-red-500 h-5 w-5 flex-shrink-0" />,
+                            }}
+                            onClick={() => navigate('/')}
+                        />
                     </div>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="flex items-center gap-3 px-4 py-2 w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm font-medium"
-                    >
-                        <LogOut size={18} />
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
+                </SidebarBody>
+            </Sidebar>
 
             {/* Main Content */}
-            <main className="flex-1 ml-64 p-8">
+            <main className="flex-1 p-8 overflow-y-auto">
                 <Outlet />
             </main>
         </div>
     );
 }
+
+export const Logo = () => {
+    return (
+        <div className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20">
+            <div className="h-6 w-6 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
+                C
+            </div>
+            <span className="font-bold text-slate-900 dark:text-white whitespace-pre">
+                Ctrl C Academy
+            </span>
+        </div>
+    );
+};

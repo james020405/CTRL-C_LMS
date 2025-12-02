@@ -4,7 +4,7 @@ import { ThemeToggle } from './ui/ThemeToggle';
 
 export function Header({ userInitial = 'G' }) {
     return (
-        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex justify-between items-center sticky top-0 z-10 transition-colors duration-300">
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-transparent px-4 py-3 flex justify-between items-center sticky top-0 z-10 transition-colors duration-300">
             <span className="font-bold text-slate-700 dark:text-slate-200 text-lg">Ctrl C Academy</span>
             <div className="flex items-center gap-3">
                 <ThemeToggle />

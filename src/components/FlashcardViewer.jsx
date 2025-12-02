@@ -1,107 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from './ui/Button';
-import { Card } from './ui/Card';
+import { Wrench, Zap, Activity, Disc, Cog, Thermometer } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { flashcardData } from '../data/flashcardData';
+import { MorphingCardStack } from './ui/morphing-card-stack';
 
-// Sample data - in a real app this would come from Supabase
-const sampleDeck = [
-    { id: 1, front: 'Piston', back: 'A moving component contained by a cylinder and made gas-tight by piston rings.' },
-    { id: 2, front: 'Camshaft', back: 'A shaft with one or more cams attached to it, used to operate poppet valves.' },
-    { id: 3, front: 'Alternator', back: 'A generator that converts mechanical energy to electrical energy in the form of alternating current.' },
-    { id: 4, front: 'Differential', back: 'A gear train with three shafts that has the property that the rotational speed of one shaft is the average of the speeds of the others.' },
-    { id: 5, front: 'Catalytic Converter', back: 'An exhaust emission control device that reduces toxic gases and pollutants in exhaust gas.' },
-];
+const deckIcons = {
+    engine: <Wrench className="w-5 h-5" />,
+    brakes: <Disc className="w-5 h-5" />,
+    transmission: <Cog className="w-5 h-5" />,
+    suspension: <Activity className="w-5 h-5" />,
+    steering: <Wrench className="w-5 h-5" />, // Reusing wrench for now
+    electrical: <Zap className="w-5 h-5" />,
+    cooling: <Thermometer className="w-5 h-5" />,
+};
+
+const deckColors = {
+    engine: '#eff6ff', // blue-50
+    brakes: '#fef2f2', // red-50
+    transmission: '#fffbeb', // amber-50
+    suspension: '#f0fdf4', // emerald-50
+    steering: '#f3e8ff', // purple-50
+    electrical: '#fff7ed', // orange-50
+    cooling: '#ecfeff', // cyan-50
+};
 
 export default function FlashcardViewer() {
-    const [cards, setCards] = useState(sampleDeck);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [knownCount, setKnownCount] = useState(0);
+    const [currentDeck, setCurrentDeck] = useState('engine');
+    const [cards, setCards] = useState([]);
 
-    const currentCard = cards[currentIndex];
-
-    const handleFlip = () => setIsFlipped(!isFlipped);
-
-    const handleNext = () => {
-        setIsFlipped(false);
-        setTimeout(() => {
-            setCurrentIndex((prev) => (prev + 1) % cards.length);
-        }, 200);
-    };
-
-    const handlePrev = () => {
-        setIsFlipped(false);
-        setTimeout(() => {
-            setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
-        }, 200);
-    };
-
-    const handleShuffle = () => {
-        setCards([...cards].sort(() => Math.random() - 0.5));
-        setCurrentIndex(0);
-        setIsFlipped(false);
-        setKnownCount(0);
-    };
-
-    const markKnown = () => {
-        setKnownCount(prev => prev + 1);
-        handleNext();
-    };
+    useEffect(() => {
+        const rawCards = flashcardData[currentDeck] || [];
+        const mappedCards = rawCards.map(card => ({
+            id: card.id,
+            title: card.question,
+            description: card.answer,
+            icon: deckIcons[currentDeck],
+            color: deckColors[currentDeck],
+        }));
+        setCards(mappedCards);
+    }, [currentDeck]);
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                <span>Card {currentIndex + 1} of {cards.length}</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">{knownCount} Mastered</span>
+        <div className="max-w-4xl mx-auto space-y-8">
+            {/* Deck Selector */}
+            <div className="flex flex-wrap gap-2 justify-center">
+                {Object.keys(flashcardData).map((deckKey) => (
+                    <button
+                        key={deckKey}
+                        onClick={() => setCurrentDeck(deckKey)}
+                        className={cn(
+                            "px-4 py-2 rounded-full text-sm font-medium capitalize transition-all",
+                            currentDeck === deckKey
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20"
+                                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                        )}
+                    >
+                        {deckKey}
+                    </button>
+                ))}
             </div>
 
-            <div className="relative h-80 w-full perspective-1000 group cursor-pointer" onClick={handleFlip}>
-                <div className={cn(
-                    "relative w-full h-full transition-all duration-500 transform-style-3d shadow-xl rounded-2xl",
-                    isFlipped ? "rotate-y-180" : ""
-                )}>
-                    {/* Front */}
-                    <div className="absolute inset-0 w-full h-full bg-white dark:bg-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center backface-hidden border-2 border-slate-100 dark:border-slate-700">
-                        <span className="text-sm uppercase tracking-widest text-slate-400 mb-4">Term</span>
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white text-center">{currentCard.front}</h3>
-                        <p className="absolute bottom-6 text-slate-400 text-sm">Click to flip</p>
-                    </div>
-
-                    {/* Back */}
-                    <div className="absolute inset-0 w-full h-full bg-blue-50 dark:bg-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center backface-hidden rotate-y-180 border-2 border-blue-100 dark:border-blue-900">
-                        <span className="text-sm uppercase tracking-widest text-blue-500 mb-4">Definition</span>
-                        <p className="text-xl text-slate-700 dark:text-slate-200 text-center leading-relaxed">{currentCard.back}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-                <Button variant="secondary" onClick={handlePrev} disabled={currentIndex === 0}>
-                    <ChevronLeft size={20} />
-                </Button>
-
-                <div className="flex gap-3">
-                    <Button variant="outline" onClick={handleShuffle} title="Shuffle Deck">
-                        <RefreshCw size={20} />
-                    </Button>
-                    <Button
-                        className="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 shadow-none"
-                        onClick={handleNext}
-                    >
-                        Study Again
-                    </Button>
-                    <Button
-                        className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-none"
-                        onClick={markKnown}
-                    >
-                        I Know This
-                    </Button>
-                </div>
-
-                <Button variant="secondary" onClick={handleNext} disabled={currentIndex === cards.length - 1}>
-                    <ChevronRight size={20} />
-                </Button>
+            <div className="flex justify-center py-8">
+                <MorphingCardStack cards={cards} />
             </div>
         </div>
     );
