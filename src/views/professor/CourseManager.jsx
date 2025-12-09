@@ -1,53 +1,68 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Copy, Trash2, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
 export default function CourseManager({ onSelectCourse }) {
+    const { user } = useAuth();
     const [courses, setCourses] = useState([]);
     const [newCourseTitle, setNewCourseTitle] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Mock data for demonstration if Supabase isn't connected
-    const mockCourses = [
-        { id: '1', title: 'Automotive Basics 101', access_code: 'AUTO24', student_count: 12 },
-        { id: '2', title: 'Advanced Diagnostics', access_code: 'DIAG99', student_count: 8 },
-    ];
-
     useEffect(() => {
-        fetchCourses();
-    }, []);
+        if (user) {
+            fetchCourses();
+        }
+    }, [user]);
 
     const fetchCourses = async () => {
         setLoading(true);
-        // In a real app:
-        // const { data, error } = await supabase.from('courses').select('*');
-        // if (data) setCourses(data);
+        try {
+            const { data, error } = await supabase
+                .from('courses')
+                .select('*')
+                .eq('professor_id', user.id)
+                .order('created_at', { ascending: false });
 
-        // For demo:
-        setTimeout(() => {
-            setCourses(mockCourses);
+            if (error) throw error;
+            setCourses(data || []);
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
     const handleCreateCourse = async (e) => {
         e.preventDefault();
-        if (!newCourseTitle.trim()) return;
+        if (!newCourseTitle.trim() || !user) return;
 
-        const newCourse = {
-            id: Math.random().toString(36).substr(2, 9),
-            title: newCourseTitle,
-            access_code: Math.random().toString(36).substr(2, 6).toUpperCase(),
-            student_count: 0
-        };
+        const accessCode = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-        setCourses([...courses, newCourse]);
-        setNewCourseTitle('');
+        try {
+            const { data, error } = await supabase
+                .from('courses')
+                .insert([
+                    {
+                        title: newCourseTitle,
+                        access_code: accessCode,
+                        professor_id: user.id,
+                        student_count: 0
+                    }
+                ])
+                .select()
+                .single();
 
-        // In a real app:
-        // await supabase.from('courses').insert([{ title: newCourseTitle, access_code: ... }]);
+            if (error) throw error;
+
+            setCourses([data, ...courses]);
+            setNewCourseTitle('');
+        } catch (error) {
+            console.error('Error creating course:', error);
+            alert('Failed to create course. Please try again.');
+        }
     };
 
     return (
@@ -62,9 +77,9 @@ export default function CourseManager({ onSelectCourse }) {
                         onChange={(e) => setNewCourseTitle(e.target.value)}
                         className="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <Button type="submit" disabled={!newCourseTitle}>
+                    <Button type="submit" disabled={!newCourseTitle || !user}>
                         <Plus size={20} className="mr-2" />
-                        Create
+                        {loading ? 'Creating...' : 'Create'}
                     </Button>
                 </form>
             </Card>

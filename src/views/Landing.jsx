@@ -1,22 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Award, Sparkles, BarChart, Target, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Award, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Header } from '../components/Header';
 import { GooeyText } from '../components/ui/GooeyText';
+import { AuroraBackground } from '../components/ui/aurora-background';
+import { Button as MovingButton } from '../components/ui/moving-border';
 
 export default function Landing() {
     const navigate = useNavigate();
-    const [accessCode, setAccessCode] = useState('');
-
-    const handleStudentLogin = (e) => {
-        e.preventDefault();
-        if (accessCode.length === 6) {
-            // TODO: Verify code with Supabase
-            navigate('/student/dashboard');
-        }
-    };
 
     const scrollToAccess = () => {
         document.getElementById('access-portal').scrollIntoView({ behavior: 'smooth' });
@@ -26,14 +19,12 @@ export default function Landing() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden">
             <Header />
 
-            {/* Hero Section */}
-            <section className="relative pt-20 pb-32 overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-slate-50 to-slate-50 dark:from-blue-950/40 dark:via-slate-950 dark:to-slate-950 -z-10" />
+            {/* Hero Section with Aurora Background */}
+            <AuroraBackground>
+                <div className="relative z-10 flex flex-col items-center justify-center min-h-screen pt-20 pb-10 px-4">
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-                    <div className="text-center max-w-4xl mx-auto space-y-8">
-                        {/* Gooey Morphing Text */}
-                        <div className="h-32 md:h-40 flex items-center justify-center">
+                    <div className="max-w-4xl mx-auto text-center space-y-8">
+                        <div className="h-20 md:h-24 flex items-center justify-center">
                             <GooeyText
                                 texts={["Master", "Learn", "Diagnose", "Repair", "Excel"]}
                                 morphTime={1}
@@ -43,46 +34,39 @@ export default function Landing() {
                             />
                         </div>
 
-                        <div className="space-y-4">
-                            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
-                                Master <span className="text-blue-600 dark:text-blue-500">Automotive</span> <br />
-                                <span className="relative inline-block">
-                                    Engineering
-                                    <svg className="absolute w-full h-3 -bottom-1 left-0 text-blue-200 dark:text-blue-900/50 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                        <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-                                    </svg>
-                                </span>
-                            </h1>
-                            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                                The most advanced learning platform for modern technicians. Experience interactive 3D disassembly, real-time diagnostics, and AI-powered curriculum.
-                            </p>
-                        </div>
+                        <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                            Master <span className="text-blue-600 dark:text-blue-500">Automotive</span> <br />
+                            <span className="relative inline-block">
+                                Engineering
+                            </span>
+                        </h1>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                            <Button
-                                onClick={scrollToAccess}
-                                className="h-14 px-8 text-lg rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 dark:shadow-blue-900/20 transition-all hover:scale-105 flex items-center gap-2"
+                        <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                            The most advanced learning platform for modern technicians. Experience interactive 3D disassembly, real-time diagnostics, and AI-powered curriculum.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+                            <MovingButton
+                                borderRadius="1.75rem"
+                                className="bg-white dark:bg-slate-900 text-black dark:text-white border-neutral-200 dark:border-slate-800 font-semibold text-lg"
+                                onClick={() => navigate('/login')}
                             >
-                                Get Started <ArrowRight className="w-5 h-5" />
-                            </Button>
+                                Get Started
+                            </MovingButton>
                             <Button
                                 variant="outline"
                                 onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
-                                className="h-14 px-8 text-lg rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                className="h-16 px-8 text-lg rounded-full border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                             >
                                 Explore Features
                             </Button>
                         </div>
                     </div>
                 </div>
-
-                {/* Decorative Elements */}
-                <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -z-10" />
-                <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl -z-10" />
-            </section>
+            </AuroraBackground>
 
             {/* Features Grid */}
-            <section id="features" className="py-24 bg-white dark:bg-slate-900/50 border-y border-slate-100 dark:border-slate-800/50">
+            <section id="features" className="py-24 bg-white dark:bg-slate-900/50 border-y border-slate-100 dark:border-slate-800/50 relative z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Everything you need to excel</h2>
@@ -119,12 +103,12 @@ export default function Landing() {
             </section>
 
             {/* Access Portal Section */}
-            <section id="access-portal" className="py-24 relative">
+            <section id="access-portal" className="py-24 relative z-20 bg-slate-50 dark:bg-slate-950">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid md:grid-cols-2 gap-12 items-start max-w-5xl mx-auto">
+                    <div className="flex justify-center max-w-5xl mx-auto">
 
                         {/* Student Access */}
-                        <div className="relative group">
+                        <div className="relative group w-full max-w-md">
                             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
                             <Card className="relative p-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-full flex flex-col">
                                 <div className="flex items-center gap-4 mb-6">
@@ -137,73 +121,37 @@ export default function Landing() {
                                     </div>
                                 </div>
 
-                                <form onSubmit={handleStudentLogin} className="space-y-4 mt-auto">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Class Code</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Ex: AUTO24"
-                                            maxLength={6}
-                                            value={accessCode}
-                                            onChange={(e) => setAccessCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                                            className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono text-center text-lg tracking-widest uppercase"
-                                        />
-                                    </div>
-                                    <Button
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 rounded-xl"
-                                        disabled={accessCode.length !== 6}
-                                    >
-                                        Enter Classroom
-                                    </Button>
-                                </form>
-                            </Card>
-                        </div>
-
-                        {/* Professor Portal */}
-                        <div className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-                            <Card className="relative p-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-full flex flex-col">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
-                                        <GraduationCap size={32} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Professor Portal</h3>
-                                        <p className="text-slate-500 dark:text-slate-400">Manage curriculum & students</p>
-                                    </div>
-                                </div>
-
                                 <div className="space-y-4 mt-auto">
-                                    <ul className="space-y-3 mb-6">
-                                        <li className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                                            <CheckCircle2 size={18} className="text-blue-500" />
-                                            <span>Create interactive assignments</span>
-                                        </li>
-                                        <li className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                                            <CheckCircle2 size={18} className="text-blue-500" />
-                                            <span>Track real-time progress</span>
-                                        </li>
-                                        <li className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                                            <CheckCircle2 size={18} className="text-blue-500" />
-                                            <span>Manage course content</span>
-                                        </li>
-                                    </ul>
-                                    <Button
-                                        onClick={() => navigate('/professor/dashboard')}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg shadow-lg shadow-blue-200 dark:shadow-blue-900/20 rounded-xl flex items-center justify-center gap-2"
-                                    >
-                                        Access Portal <ArrowRight size={18} />
-                                    </Button>
+                                    <p className="text-slate-600 dark:text-slate-300">
+                                        Access your courses, simulations, and quizzes.
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <Button
+                                            onClick={() => navigate('/login')}
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 rounded-xl"
+                                        >
+                                            Login
+                                        </Button>
+                                        <Button
+                                            onClick={() => navigate('/register')}
+                                            variant="outline"
+                                            className="flex-1 h-12 text-lg rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
+                                        >
+                                            Register
+                                        </Button>
+                                    </div>
                                 </div>
                             </Card>
                         </div>
+
+
 
                     </div>
                 </div>
             </section>
 
             {/* Footer */}
-            <footer className="bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 py-12">
+            <footer className="bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 py-12 relative z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>

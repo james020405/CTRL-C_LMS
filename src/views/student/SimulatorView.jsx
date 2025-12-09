@@ -4,8 +4,9 @@ import { OrbitControls, useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card } from '../../components/ui/Card';
 import { X, Box, Layers, Eye, PlayCircle } from 'lucide-react';
+import { getPartName, getPartDescription } from '../../data/partNames';
 
-function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, sequenceStep }) {
+function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, sequenceStep, systemType }) {
     const { scene, animations } = useGLTF(url);
     const { actions, mixer } = useAnimations(animations, scene);
     const { camera, gl } = useThree();
@@ -16,16 +17,6 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
     const mouse = useRef(new THREE.Vector2());
     const hoveredMesh = useRef(null);
     const hasAnimations = animations && animations.length > 0;
-
-    // Log available animations
-    useEffect(() => {
-        if (hasAnimations) {
-            console.log(`Found ${animations.length} animations in model:`, animations.map(a => a.name));
-            console.log('Available actions:', Object.keys(actions));
-        } else {
-            console.log('No animations found in model, using manual explosion');
-        }
-    }, [animations, actions, hasAnimations]);
 
     useEffect(() => {
         const bbox = new THREE.Box3().setFromObject(scene);
@@ -65,8 +56,6 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
                 });
             }
         });
-
-        console.log(`Loaded ${meshList.current.length} meshes`);
     }, [scene]);
 
     // Handle animation playback for baked animations
@@ -82,7 +71,6 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
                     firstAction.clampWhenFinished = true;
                     firstAction.loop = THREE.LoopOnce;
                     firstAction.play();
-                    console.log('Playing disassembly animation');
                 }
             } else {
                 // Play animation in reverse (assembly)
@@ -98,7 +86,6 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
                     }
 
                     firstAction.play();
-                    console.log('Playing assembly animation (reverse)');
                 }
             }
         }
@@ -208,7 +195,8 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
                     while (target && (!target.name || target.name.startsWith('Object_') || target.name.startsWith('Mesh'))) {
                         target = target.parent;
                     }
-                    const partName = target?.name || mesh.name || "Unknown Component";
+                    const rawName = target?.name || mesh.name || "Unknown";
+                    const partName = getPartName(rawName, systemType);
                     onHover?.(partName);
                 }
             }
@@ -228,7 +216,8 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
                 while (target && (!target.name || target.name.startsWith('Object_') || target.name.startsWith('Mesh'))) {
                     target = target.parent;
                 }
-                const partName = target?.name || e.object.name || "Unknown Component";
+                const rawName = target?.name || e.object.name || "Unknown";
+                const partName = getPartName(rawName, systemType);
                 onPartClick(partName);
             }}
         />
@@ -275,172 +264,157 @@ export default function SimulatorView() {
                     }
                     return prev + 1;
                 });
-            }, 200);
+            }, 500);
+
             return () => clearInterval(interval);
         } else {
             setSequenceStep(0);
         }
     }, [sequenceMode]);
 
-    React.useEffect(() => {
-        return () => {
-            systems.forEach(sys => {
-                if (sys.id !== currentSystem && sys.model) {
-                    useGLTF.clear(sys.model);
-                }
-            });
-        };
-    }, [currentSystem]);
-
-    React.useEffect(() => {
+    const handleSystemChange = (systemId) => {
+        setCurrentSystem(systemId);
         setSelectedPart(null);
         setIsExploded(false);
         setXrayMode(false);
         setSequenceMode(false);
-    }, [currentSystem]);
-
-    const toggleSequence = () => {
-        setSequenceMode(!sequenceMode);
-        setIsExploded(false);
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Interactive Simulator</h1>
-                    <p className="text-slate-600 dark:text-slate-400">Practice disassembly and assembly in a 3D environment.</p>
+        <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row gap-4 p-4 bg-slate-50 dark:bg-slate-900">
+            {/* Systems Panel */}
+            <Card className="lg:w-64 p-4 flex-shrink-0">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                    3D Simulator
+                </h2>
+                <div className="space-y-2">
+                    {systems.map((system) => (
+                        <button
+                            key={system.id}
+                            onClick={() => handleSystemChange(system.id)}
+                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${currentSystem === system.id
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                }`}
+                        >
+                            <span className="font-medium">{system.name}</span>
+                        </button>
+                    ))}
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => { setIsExploded(!isExploded); setSequenceMode(false); }}
-                        disabled={sequenceMode}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isExploded
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
-                            } disabled:opacity-50`}
-                    >
-                        {isExploded ? <Box size={20} /> : <Layers size={20} />}
-                        {isExploded ? 'Assemble' : 'Disassemble'}
-                    </button>
+
+                {/* Controls */}
+                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                    <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                        View Controls
+                    </h3>
 
                     <button
-                        onClick={toggleSequence}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${sequenceMode
-                            ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        onClick={() => { setIsExploded(!isExploded); setSequenceMode(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isExploded && !sequenceMode
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                     >
-                        <PlayCircle size={20} />
-                        Sequence
+                        {isExploded ? <Box size={18} /> : <Layers size={18} />}
+                        <span className="font-medium">{isExploded ? 'Assemble' : 'Explode'}</span>
                     </button>
 
                     <button
                         onClick={() => setXrayMode(!xrayMode)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${xrayMode
-                            ? 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300'
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${xrayMode
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                     >
-                        <Eye size={20} />
-                        X-Ray
+                        <Eye size={18} />
+                        <span className="font-medium">X-Ray Mode</span>
+                    </button>
+
+                    <button
+                        onClick={() => { setSequenceMode(!sequenceMode); setIsExploded(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${sequenceMode
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                    >
+                        <PlayCircle size={18} />
+                        <span className="font-medium">Sequence Mode</span>
                     </button>
                 </div>
-            </div>
+            </Card>
 
-            <Card className="aspect-video w-full bg-slate-900 flex flex-col overflow-hidden relative">
-                <Canvas
-                    dpr={1}
-                    camera={{ fov: 50, position: [5, 5, 5] }}
-                    gl={{
-                        antialias: false,
-                        powerPreference: "high-performance"
-                    }}
-                >
-                    <Suspense fallback={<Loader />}>
+            {/* 3D Canvas */}
+            <div className="flex-1 relative">
+                <Card className="absolute inset-0 overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800">
+                    <Canvas
+                        camera={{ position: [5, 5, 5], fov: 50 }}
+                        gl={{ antialias: true }}
+                    >
                         <ambientLight intensity={0.5} />
-                        <directionalLight position={[10, 10, 5]} intensity={0.8} />
-                        <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+                        <directionalLight position={[10, 10, 5]} intensity={1} />
+                        <directionalLight position={[-10, -10, -5]} intensity={0.5} />
 
-                        {currentModelUrl && (
-                            <Model
-                                key={currentModelUrl}
-                                url={currentModelUrl}
-                                onPartClick={setSelectedPart}
-                                onHover={setHoveredPart}
-                                isExploded={isExploded}
-                                xrayMode={xrayMode}
-                                sequenceMode={sequenceMode}
-                                sequenceStep={sequenceStep}
-                            />
-                        )}
+                        <Suspense fallback={<Loader />}>
+                            {currentModelUrl && (
+                                <Model
+                                    url={currentModelUrl}
+                                    onPartClick={setSelectedPart}
+                                    isExploded={isExploded}
+                                    xrayMode={xrayMode}
+                                    onHover={setHoveredPart}
+                                    sequenceMode={sequenceMode}
+                                    sequenceStep={sequenceStep}
+                                    systemType={currentSystem}
+                                />
+                            )}
+                        </Suspense>
 
                         <OrbitControls
                             makeDefault
-                            enableDamping={false}
+                            enableDamping
+                            dampingFactor={0.05}
                         />
-                    </Suspense>
-                </Canvas>
+                    </Canvas>
 
-                {hoveredPart && !selectedPart && (
-                    <div className="absolute top-4 left-4 bg-slate-800/90 text-white px-3 py-2 rounded-lg text-sm pointer-events-none">
-                        {hoveredPart}
-                    </div>
-                )}
-
-                {selectedPart && (
-                    <div className="absolute top-4 right-4 w-72 bg-white/95 dark:bg-slate-800/95 backdrop-blur p-4 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-10 animate-in fade-in slide-in-from-right-4 duration-200">
-                        <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-slate-900 dark:text-white text-lg break-words">{selectedPart}</h3>
-                            <button
-                                onClick={() => setSelectedPart(null)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                            >
-                                <X size={16} />
-                            </button>
+                    {/* Hover tooltip */}
+                    {hoveredPart && (
+                        <div className="absolute top-4 left-4 bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium pointer-events-none">
+                            {hoveredPart}
                         </div>
-                        <div className="space-y-2">
-                            <p className="text-sm text-slate-600 dark:text-slate-300">
-                                Selected component from the <strong>{systems.find(s => s.id === currentSystem)?.name}</strong> system.
-                            </p>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 p-2 rounded">
-                                Status: Functional<br />
-                                Condition: Good<br />
-                                Material: Steel Alloy
-                            </div>
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
-                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur p-4 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 pointer-events-auto">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="font-bold text-slate-900 dark:text-white">
-                                    {systems.find(s => s.id === currentSystem)?.name} System
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Hover: Highlight • Click: Inspect • <strong>Use mode buttons above</strong>
-                                </p>
-                            </div>
-                            <div className="flex gap-2">
-                                {systems.map((sys) => (
+                    {/* Selected part info */}
+                    {selectedPart && (
+                        <div className="absolute bottom-4 left-4 right-4 lg:left-auto lg:right-4 lg:w-80">
+                            <Card className="p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur shadow-xl">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+                                            {selectedPart}
+                                        </h3>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                                            {getPartDescription(selectedPart)}
+                                        </p>
+                                    </div>
                                     <button
-                                        key={sys.id}
-                                        onClick={() => setCurrentSystem(sys.id)}
-                                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${currentSystem === sys.id
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                                            }`}
+                                        onClick={() => setSelectedPart(null)}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex-shrink-0"
                                     >
-                                        {sys.name}
+                                        <X size={20} />
                                     </button>
-                                ))}
-                            </div>
+                                </div>
+                            </Card>
                         </div>
-                    </div>
-                </div>
-            </Card>
+                    )}
+
+                    {/* Sequence progress */}
+                    {sequenceMode && (
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-6 py-2 rounded-full text-sm font-medium">
+                            Sequence Step: {sequenceStep} / 20
+                        </div>
+                    )}
+                </Card>
+            </div>
         </div>
     );
 }

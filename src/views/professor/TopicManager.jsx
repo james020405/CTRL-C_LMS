@@ -1,31 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { Plus, FileText, Video, Image as ImageIcon, Link as LinkIcon, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
 export default function TopicManager({ course, onBack }) {
-    const [topics, setTopics] = useState([
-        {
-            id: '1',
-            title: 'Week 1: Engine Basics',
-            materials: [
-                { id: 'm1', title: 'Engine Components PDF', type: 'pdf' },
-                { id: 'm2', title: 'Intro to Combustion', type: 'video' }
-            ]
-        }
-    ]);
+    const [topics, setTopics] = useState([]);
     const [newTopicTitle, setNewTopicTitle] = useState('');
 
-    const handleCreateTopic = (e) => {
+    useEffect(() => {
+        if (course) {
+            fetchTopics();
+        }
+    }, [course]);
+
+    const fetchTopics = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('topics')
+                .select('*, materials(*)')
+                .eq('course_id', course.id)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            setTopics(data || []);
+        } catch (error) {
+            console.error('Error fetching topics:', error);
+        }
+    };
+
+    const handleCreateTopic = async (e) => {
         e.preventDefault();
         if (!newTopicTitle.trim()) return;
 
-        setTopics([...topics, {
-            id: Date.now().toString(),
-            title: newTopicTitle,
-            materials: []
-        }]);
-        setNewTopicTitle('');
+        try {
+            const { data, error } = await supabase
+                .from('topics')
+                .insert([
+                    {
+                        title: newTopicTitle,
+                        course_id: course.id
+                    }
+                ])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setTopics([...topics, { ...data, materials: [] }]);
+            setNewTopicTitle('');
+        } catch (error) {
+            console.error('Error creating topic:', error);
+            alert('Failed to create topic.');
+        }
     };
 
     const getIcon = (type) => {

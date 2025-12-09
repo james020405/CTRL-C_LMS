@@ -1,23 +1,76 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva } from "class-variance-authority"
+import PropTypes from "prop-types"
 
-export function Button({ variant = 'primary', className, children, ...props }) {
-    const variants = {
-        primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-blue-900/20",
-        secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600",
-        outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-    };
+import { cn } from "@/lib/utils"
 
-    return (
-        <button
-            className={cn(
-                "px-5 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
-                variants[variant],
-                className
-            )}
-            {...props}
-        >
-            {children}
-        </button>
-    );
+const buttonVariants = cva(
+    // Improved focus states for better accessibility
+    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50",
+    {
+        variants: {
+            variant: {
+                default: "bg-primary text-primary-foreground hover:bg-primary/90",
+                destructive:
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                outline:
+                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                secondary:
+                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                ghost: "hover:bg-accent hover:text-accent-foreground",
+                link: "text-primary underline-offset-4 hover:underline",
+            },
+            size: {
+                default: "h-10 px-4 py-2",
+                sm: "h-9 rounded-md px-3",
+                lg: "h-11 rounded-md px-8",
+                icon: "h-10 w-10",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+            size: "default",
+        },
+    }
+)
+
+const Button = React.forwardRef(
+    ({ className, variant, size, asChild = false, type = "button", ...props }, ref) => {
+        const Comp = asChild ? Slot : "button"
+        return (
+            <Comp
+                type={!asChild ? type : undefined}
+                className={cn(buttonVariants({ variant, size, className }))}
+                ref={ref}
+                {...props}
+            />
+        )
+    }
+)
+Button.displayName = "Button"
+
+// PropTypes for type safety
+Button.propTypes = {
+    /** The visual style variant of the button */
+    variant: PropTypes.oneOf(['default', 'destructive', 'outline', 'secondary', 'ghost', 'link']),
+    /** The size of the button */
+    size: PropTypes.oneOf(['default', 'sm', 'lg', 'icon']),
+    /** Additional CSS classes */
+    className: PropTypes.string,
+    /** If true, the button will render as its child element */
+    asChild: PropTypes.bool,
+    /** Button type attribute (button, submit, reset) */
+    type: PropTypes.oneOf(['button', 'submit', 'reset']),
+    /** Click handler */
+    onClick: PropTypes.func,
+    /** Whether the button is disabled */
+    disabled: PropTypes.bool,
+    /** Accessible label for the button */
+    'aria-label': PropTypes.string,
+    /** Button content */
+    children: PropTypes.node,
 }
+
+export { Button, buttonVariants }
+

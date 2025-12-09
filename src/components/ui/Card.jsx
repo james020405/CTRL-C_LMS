@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { cn } from '../../lib/utils';
 
 export function Card({ className, children, ...props }) {
@@ -14,3 +15,13 @@ export function Card({ className, children, ...props }) {
         </div>
     );
 }
+
+Card.propTypes = {
+    /** Additional CSS classes */
+    className: PropTypes.string,
+    /** Card content */
+    children: PropTypes.node,
+    /** Click handler */
+    onClick: PropTypes.func,
+};
+

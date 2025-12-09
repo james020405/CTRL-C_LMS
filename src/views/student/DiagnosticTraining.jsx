@@ -1,5 +1,5 @@
 import React, { useState, Suspense, useEffect, useRef } from 'react';
-import { Stethoscope, CheckCircle2, XCircle, Box, Layers, Wrench } from 'lucide-react';
+import { Stethoscope, CheckCircle2, XCircle, Box, Layers, Wrench, Monitor, Zap, Ruler, Gauge, Activity } from 'lucide-react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -298,8 +298,8 @@ export default function DiagnosticTraining() {
                                 <button
                                     onClick={() => setIsExploded(!isExploded)}
                                     className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2 ${isExploded
-                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                                         }`}
                                 >
                                     {isExploded ? <><Box size={16} /> Assemble</> : <><Layers size={16} /> Disassemble</>}
@@ -314,16 +314,16 @@ export default function DiagnosticTraining() {
                                         <button
                                             key={tool}
                                             onClick={() => setSelectedTool(selectedTool === tool ? null : tool)}
-                                            className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedTool === tool
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                            className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${selectedTool === tool
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                                 }`}
                                         >
-                                            {tool === 'scanner' && '🖥️ OBD Scanner'}
-                                            {tool === 'multimeter' && '⚡ Multimeter'}
-                                            {tool === 'caliper' && '📏 Caliper'}
-                                            {tool === 'compression' && '🔧 Compression'}
-                                            {tool === 'pressure' && '💨 Pressure'}
+                                            {tool === 'scanner' && <><Monitor size={16} /> OBD Scanner</>}
+                                            {tool === 'multimeter' && <><Zap size={16} /> Multimeter</>}
+                                            {tool === 'caliper' && <><Ruler size={16} /> Caliper</>}
+                                            {tool === 'compression' && <><Gauge size={16} /> Compression</>}
+                                            {tool === 'pressure' && <><Activity size={16} /> Pressure</>}
                                         </button>
                                     ))}
 
@@ -348,8 +348,8 @@ export default function DiagnosticTraining() {
                                                                 {toolReadings.value} {toolReadings.unit}
                                                             </div>
                                                             <div className={`${toolReadings.status === 'OK' ? 'text-green-600' :
-                                                                    toolReadings.status === 'FAIL' ? 'text-red-600' :
-                                                                        'text-orange-600'
+                                                                toolReadings.status === 'FAIL' ? 'text-red-600' :
+                                                                    'text-orange-600'
                                                                 }`}>
                                                                 {toolReadings.status}
                                                             </div>

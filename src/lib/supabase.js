@@ -25,6 +25,9 @@ export const supabase = isValidUrl(supabaseUrl)
         auth: {
             signInWithPassword: () => Promise.resolve({ data: {}, error: null }),
             getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+            getSession: () => Promise.resolve({ data: { session: null }, error: null }), // Added getSession
             onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+            signUp: () => Promise.resolve({ data: {}, error: null }),
+            signOut: () => Promise.resolve({ error: null }),
         }
     }
