@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Input } from '../../components/ui/input';
 import { calculateNextReview, getIntervalPreviews, RATING, formatInterval } from '../../lib/spacedRepetition';
 import { Plus, Trash2, RotateCw, CheckCircle, BrainCircuit, Loader2, Layers, FolderPlus, RotateCcw, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
