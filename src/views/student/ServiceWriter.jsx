@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Input } from '../../components/ui/input';
 import { generateServiceCustomer, evaluateEstimate, askCustomerQuestion, askTechnicianToCheck } from '../../lib/gemini';
 import { getRemainingPlays, recordPlay, submitScore, SCORE_MULTIPLIERS } from '../../lib/gameService';
 import { useAuth } from '../../contexts/AuthContext';
