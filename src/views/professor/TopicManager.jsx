@@ -45,13 +45,45 @@ export default function TopicManager({ course, onBack }) {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error:', error);
+                throw error;
+            }
 
             setTopics([...topics, { ...data, materials: [] }]);
             setNewTopicTitle('');
         } catch (error) {
             console.error('Error creating topic:', error);
-            alert('Failed to create topic.');
+            // Show more specific error message
+            const errorMessage = error?.message || error?.details || 'Unknown error';
+            alert(`Failed to create topic: ${errorMessage}\n\nIf this says "permission denied" or "RLS", the professor needs INSERT permission on the topics table.`);
+        }
+    };
+
+    const handleDeleteTopic = async (topicId, topicTitle) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${topicTitle}"?\n\nThis will also delete all materials in this topic.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            // First delete materials in this topic
+            await supabase.from('materials').delete().eq('topic_id', topicId);
+
+            // Then delete the topic
+            const { error } = await supabase
+                .from('topics')
+                .delete()
+                .eq('id', topicId);
+
+            if (error) throw error;
+
+            setTopics(topics.filter(t => t.id !== topicId));
+        } catch (error) {
+            console.error('Error deleting topic:', error);
+            const errorMessage = error?.message || error?.details || 'Unknown error';
+            alert(`Failed to delete topic: ${errorMessage}`);
         }
     };
 
@@ -98,6 +130,13 @@ export default function TopicManager({ course, onBack }) {
                             <div className="flex gap-2">
                                 <Button variant="secondary" className="text-xs h-8 px-3">
                                     + Material
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handleDeleteTopic(topic.id, topic.title)}
+                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20 h-8 px-2"
+                                >
+                                    <Trash2 size={14} />
                                 </Button>
                             </div>
                         </div>
