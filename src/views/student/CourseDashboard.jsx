@@ -95,7 +95,19 @@ export default function StudentDashboard() {
         }
     };
 
-    const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+    // Get first name only for greeting
+    const getFirstName = () => {
+        if (profile?.full_name) {
+            return profile.full_name.split(' ')[0];
+        }
+        if (user?.email) {
+            const username = user.email.split('@')[0];
+            // Handle formats like "james.abrau" or "james_abrau"
+            return username.split(/[._]/)[0];
+        }
+        return 'Student';
+    };
+    const displayName = getFirstName();
 
     return (
         <div className="max-w-6xl mx-auto space-y-10">
