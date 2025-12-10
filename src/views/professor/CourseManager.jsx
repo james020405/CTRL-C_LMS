@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Plus, Copy, Trash2, ChevronRight, Check, Loader2, BookOpen } from 'lucide-react';
+import { Plus, Copy, Trash2, ChevronRight, Check, Loader2, BookOpen, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -180,46 +180,87 @@ export default function CourseManager({ onSelectCourse }) {
             ) : (
                 /* Course List */
                 <div className="grid gap-4">
-                    {courses.map((course) => (
-                        <Card key={course.id} className="p-4 hover:border-blue-500 transition-colors">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">{course.title}</h3>
-                                    <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                        <button
-                                            onClick={() => handleCopyCode(course.access_code)}
-                                            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                                            title="Click to copy"
-                                        >
-                                            Code:
-                                            <code className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono text-slate-700 dark:text-slate-300">
-                                                {course.access_code}
-                                            </code>
-                                            {copiedCode === course.access_code ? (
-                                                <Check size={14} className="text-green-500" />
-                                            ) : (
-                                                <Copy size={14} />
-                                            )}
-                                        </button>
-                                        <span>{course.student_count || 0} Students</span>
+                    {courses.map((course, index) => {
+                        // Gradient colors based on index
+                        const gradients = [
+                            'from-blue-500 to-indigo-600',
+                            'from-emerald-500 to-teal-600',
+                            'from-purple-500 to-pink-600',
+                            'from-orange-500 to-red-600',
+                            'from-cyan-500 to-blue-600',
+                        ];
+                        const gradient = gradients[index % gradients.length];
+
+                        return (
+                            <Card
+                                key={course.id}
+                                className="overflow-hidden hover:shadow-lg transition-all duration-200 group"
+                            >
+                                <div className="flex">
+                                    {/* Gradient Left Border */}
+                                    <div className={`w-1.5 bg-gradient-to-b ${gradient}`} />
+
+                                    <div className="flex-1 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                {/* Course Avatar */}
+                                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+                                                    {course.title[0]?.toUpperCase()}
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                                                        {course.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCopyCode(course.access_code);
+                                                            }}
+                                                            className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                                                            title="Click to copy access code"
+                                                        >
+                                                            <span className="text-slate-400">Code:</span>
+                                                            <code className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-mono text-slate-700 dark:text-slate-300 text-xs">
+                                                                {course.access_code}
+                                                            </code>
+                                                            {copiedCode === course.access_code ? (
+                                                                <Check size={14} className="text-green-500" />
+                                                            ) : (
+                                                                <Copy size={14} className="opacity-50" />
+                                                            )}
+                                                        </button>
+                                                        <span className="flex items-center gap-1">
+                                                            <Users size={14} className="opacity-50" />
+                                                            {course.student_count || 0} Students
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteCourse(course.id, course.title)}
+                                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                                <Button
+                                                    onClick={() => onSelectCourse(course)}
+                                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                                                >
+                                                    Manage Topics <ChevronRight size={16} className="ml-1" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => handleDeleteCourse(course.id, course.title)}
-                                        className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                                    >
-                                        <Trash2 size={16} />
-                                    </Button>
-                                    <Button variant="secondary" onClick={() => onSelectCourse(course)}>
-                                        Manage Topics <ChevronRight size={16} className="ml-1" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    ))}
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
         </div>
