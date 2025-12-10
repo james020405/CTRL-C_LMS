@@ -28,7 +28,7 @@ export default function Login() {
     const from = location.state?.from?.pathname || '/student/dashboard';
     const isProfessor = from.includes('professor');
 
-    // Detect password recovery session from URL hash
+    // Detect password recovery or email confirmation from URL hash
     useEffect(() => {
         const handleAuthChange = async () => {
             // Check if there's a hash in the URL (tokens from Supabase)
@@ -41,6 +41,12 @@ export default function Login() {
                     navigate('/reset-password' + window.location.hash, { replace: true });
                     return;
                 }
+
+                // If this is email confirmation (signup), redirect to email-confirmed
+                if (type === 'signup' || type === 'email_change') {
+                    navigate('/email-confirmed', { replace: true });
+                    return;
+                }
             }
         };
 
@@ -50,6 +56,9 @@ export default function Login() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
                 navigate('/reset-password', { replace: true });
+            }
+            if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+                // User just confirmed email and signed in
             }
         });
 
