@@ -41,16 +41,22 @@ export default function StudentProgress() {
 
         try {
             // First, get ALL profiles (not just by role)
+            console.log('Fetching profiles...');
             const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
                 .select('id, full_name, email, role');
+
+            console.log('Profiles query result:', { profiles, error: profilesError });
 
             if (profilesError) {
                 console.error('Profiles error:', profilesError);
                 throw new Error(`Cannot load profiles: ${profilesError.message}`);
             }
 
+            console.log('Number of profiles found:', profiles?.length || 0);
+
             if (!profiles || profiles.length === 0) {
+                console.warn('No profiles returned - check RLS policies!');
                 setStudents([]);
                 setLoading(false);
                 return;
