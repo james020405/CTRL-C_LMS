@@ -37,15 +37,7 @@ export default function StudentProgress() {
     const loadStudentsProgress = async () => {
         setLoading(true);
         try {
-            // Get all profiles
-            const { data: profiles, error: profilesError } = await supabase
-                .from('profiles')
-                .select('id, full_name, email, role')
-                .eq('role', 'student');
-
-            if (profilesError) throw profilesError;
-
-            // Get all game scores
+            // Get all game scores first to find active users
             const { data: scores, error: scoresError } = await supabase
                 .from('game_scores')
                 .select('user_id, game_type, difficulty, score, created_at');
@@ -58,6 +50,32 @@ export default function StudentProgress() {
                 .select('user_id, game_type, difficulty');
 
             if (playsError) throw playsError;
+
+            // Get unique user IDs from scores and plays
+            const userIds = [...new Set([
+                ...(scores?.map(s => s.user_id) || []),
+                ...(plays?.map(p => p.user_id) || [])
+            ])];
+
+            // Get profiles for these users
+            let profiles = [];
+            if (userIds.length > 0) {
+                const { data: profileData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, email, role')
+                    .in('id', userIds);
+
+                if (profilesError) throw profilesError;
+                profiles = profileData || [];
+            }
+
+            // If no profiles found, also try to get all profiles (for new users who haven't played)
+            if (profiles.length === 0) {
+                const { data: allProfiles } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, email, role');
+                profiles = allProfiles || [];
+            }
 
             // Aggregate data per student
             const studentData = profiles?.map(profile => {
@@ -211,8 +229,8 @@ export default function StudentProgress() {
                             key={sort}
                             onClick={() => sortStudents(sort)}
                             className={`px-3 py-1 rounded-lg text-sm ${sortBy === sort
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                                 }`}
                         >
                             {sort.charAt(0).toUpperCase() + sort.slice(1)}
@@ -247,9 +265,9 @@ export default function StudentProgress() {
                             >
                                 <div className="col-span-1">
                                     <span className={`font-bold ${index === 0 ? 'text-yellow-600' :
-                                            index === 1 ? 'text-slate-400' :
-                                                index === 2 ? 'text-amber-600' :
-                                                    'text-slate-500'
+                                        index === 1 ? 'text-slate-400' :
+                                            index === 2 ? 'text-amber-600' :
+                                                'text-slate-500'
                                         }`}>
                                         #{index + 1}
                                     </span>
