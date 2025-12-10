@@ -64,25 +64,31 @@ export default function StudentProgress() {
 
             // Try to get game scores (may not exist or be empty)
             let scores = [];
-            try {
-                const { data, error } = await supabase
-                    .from('game_scores')
-                    .select('user_id, game_type, difficulty, score, created_at');
-                if (!error) scores = data || [];
-            } catch (e) {
-                console.log('No game_scores table yet');
+            const { data: scoresData, error: scoresError } = await supabase
+                .from('game_scores')
+                .select('user_id, game_type, difficulty, score, created_at');
+
+            if (scoresError) {
+                console.log('game_scores query error (table may not exist):', scoresError.message);
+                // Continue with empty scores - don't throw
+            } else {
+                scores = scoresData || [];
             }
 
             // Try to get game plays (may not exist or be empty)
             let plays = [];
-            try {
-                const { data, error } = await supabase
-                    .from('game_plays')
-                    .select('user_id, game_type, difficulty');
-                if (!error) plays = data || [];
-            } catch (e) {
-                console.log('No game_plays table yet');
+            const { data: playsData, error: playsError } = await supabase
+                .from('game_plays')
+                .select('user_id, game_type, difficulty');
+
+            if (playsError) {
+                console.log('game_plays query error (table may not exist):', playsError.message);
+                // Continue with empty plays - don't throw
+            } else {
+                plays = playsData || [];
             }
+
+            console.log('Scores count:', scores.length, 'Plays count:', plays.length);
 
             // Aggregate data per student (include ALL profiles)
             const studentData = profiles.map(profile => {
