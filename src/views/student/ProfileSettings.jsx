@@ -140,6 +140,12 @@ export default function ProfileSettings() {
         setError('');
         setSuccess('');
 
+        // Validate current password is provided
+        if (!currentPassword) {
+            setError('Please enter your current password.');
+            return;
+        }
+
         if (newPassword.length < 6) {
             setError('New password must be at least 6 characters.');
             return;
@@ -150,9 +156,25 @@ export default function ProfileSettings() {
             return;
         }
 
+        if (currentPassword === newPassword) {
+            setError('New password must be different from current password.');
+            return;
+        }
+
         setChangingPassword(true);
 
         try {
+            // First, verify current password by re-authenticating
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: currentPassword
+            });
+
+            if (authError) {
+                throw new Error('Current password is incorrect.');
+            }
+
+            // If verification passed, update to new password
             const { error } = await supabase.auth.updateUser({
                 password: newPassword
             });
@@ -320,6 +342,22 @@ export default function ProfileSettings() {
                         <form onSubmit={handleChangePassword} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Current Password
+                                </label>
+                                <Input
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    placeholder="Enter current password"
+                                    className="w-full"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    For security, please verify your current password
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                     New Password
                                 </label>
                                 <Input
@@ -346,7 +384,7 @@ export default function ProfileSettings() {
 
                             <Button
                                 type="submit"
-                                disabled={changingPassword || !newPassword || !confirmPassword}
+                                disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
                                 className="bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white"
                             >
                                 {changingPassword ? (
