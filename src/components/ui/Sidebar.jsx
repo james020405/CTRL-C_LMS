@@ -138,23 +138,53 @@ export const SidebarLink = ({
     className,
     ...props
 }) => {
-    const { open, animate } = useSidebar();
+    const { open, animate, setOpen } = useSidebar();
+    const location = useLocation();
+    const isActive = location.pathname === link.href;
+
+    // Close mobile sidebar when navigating
+    const handleClick = () => {
+        // Only close on mobile (when sidebar is fullscreen overlay)
+        if (window.innerWidth < 768) {
+            setOpen(false);
+        }
+    };
+
     return (
         <Link
             to={link.href}
+            onClick={handleClick}
             className={cn(
-                "flex items-center justify-start gap-2 group/sidebar py-2",
+                "flex items-center justify-start gap-2 group/sidebar py-2 px-2 rounded-lg transition-all overflow-visible",
+                isActive
+                    ? "bg-blue-100 dark:bg-blue-900/40"
+                    : "hover:bg-slate-200/50 dark:hover:bg-slate-700/50",
                 className
             )}
             {...props}
         >
-            {link.icon}
+            <div className={cn(
+                "flex-shrink-0",
+                isActive && "relative before:absolute before:-left-4 before:top-0 before:bottom-0 before:w-1 before:bg-blue-500 before:rounded-full"
+            )}>
+                {React.cloneElement(link.icon, {
+                    className: cn(
+                        link.icon.props.className,
+                        isActive && "text-blue-600 dark:text-blue-400"
+                    )
+                })}
+            </div>
             <motion.span
                 animate={{
                     display: animate ? (open ? "inline-block" : "none") : "inline-block",
                     opacity: animate ? (open ? 1 : 0) : 1,
                 }}
-                className="text-slate-700 dark:text-slate-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+                className={cn(
+                    "text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0",
+                    isActive
+                        ? "text-blue-700 dark:text-blue-300 font-medium"
+                        : "text-slate-700 dark:text-slate-200"
+                )}
             >
                 {link.label}
             </motion.span>

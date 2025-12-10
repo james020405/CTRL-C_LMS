@@ -56,7 +56,7 @@ export default function StudentDashboard() {
                 </div>
             ),
             icon: <Gamepad2 className="h-4 w-4 text-orange-500" />,
-            onClick: () => navigate('/student/roulette'),
+            onClick: () => navigate('/student/games'),
         },
     ];
 
@@ -157,10 +157,10 @@ export default function StudentDashboard() {
                         <span className="text-slate-500">Loading courses...</span>
                     </div>
                 ) : courses.length === 0 ? (
-                    <div className="text-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
-                        <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-500 dark:text-slate-400 mb-2">No courses available yet</p>
-                        <p className="text-sm text-slate-400 dark:text-slate-500">Check back later or ask your professor for the course code.</p>
+                    <div className="text-center p-12 bg-slate-100 dark:bg-slate-800/50 rounded-2xl">
+                        <BookOpen className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
+                        <p className="text-slate-600 dark:text-slate-400 mb-2 font-medium">No courses available yet</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-500">Check back later or ask your professor for the course code.</p>
                     </div>
                 ) : (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

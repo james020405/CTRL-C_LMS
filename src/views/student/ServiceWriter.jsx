@@ -266,17 +266,18 @@ export default function ServiceWriter() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <FileText className="text-blue-600" />
-                        Service Writer Simulator
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="text-blue-600 flex-shrink-0" size={24} />
+                        <span className="hidden sm:inline">Service Writer Simulator</span>
+                        <span className="sm:hidden">Service Writer</span>
                     </h1>
-                    <p className="text-slate-500">Master the art of the estimate.</p>
+                    <p className="text-slate-500 text-sm sm:text-base">Master the art of the estimate.</p>
                 </div>
                 {score > 0 && (
-                    <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-xl">
-                        <Trophy className="text-yellow-500" />
+                    <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 px-3 sm:px-4 py-2 rounded-xl">
+                        <Trophy className="text-yellow-500" size={18} />
                         <span className="font-bold text-yellow-700 dark:text-yellow-400">{score} pts</span>
                     </div>
                 )}

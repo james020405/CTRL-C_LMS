@@ -353,10 +353,32 @@ export default function FaultRoulette() {
 
             {/* Game Play */}
             {(gameState === 'playing' || gameState === 'result') && currentCase && (
-                <div className="grid grid-cols-12 gap-6">
-                    {/* Left Panel */}
-                    <div className="col-span-3 flex flex-col gap-4">
-                        <Card className="p-6 bg-slate-50 dark:bg-slate-800/50 border-l-4 border-l-blue-500">
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6">
+                    {/* 3D View - Shown first on mobile, right side on desktop */}
+                    <div className="order-1 lg:order-2 lg:col-span-8 xl:col-span-9">
+                        <Card className="h-[300px] sm:h-[400px] lg:h-full min-h-[400px] bg-slate-900 overflow-hidden relative border-0">
+                            <Canvas camera={{ fov: 45, position: [5, 5, 5] }} gl={{ antialias: true }}>
+                                <Suspense fallback={<Loader />}>
+                                    <ambientLight intensity={0.5} />
+                                    <directionalLight position={[10, 10, 5]} intensity={1} />
+                                    <directionalLight position={[-10, -10, -5]} intensity={0.5} />
+                                    <RouletteModel system={currentCase.system} onPartClick={handlePartClick} />
+                                    <OrbitControls makeDefault />
+                                </Suspense>
+                            </Canvas>
+                            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold">
+                                System: {currentCase.system.toUpperCase()}
+                            </div>
+                            {/* Mobile instruction overlay */}
+                            <div className="lg:hidden absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur text-white px-3 py-2 rounded-lg text-xs text-center">
+                                Tap and drag to rotate • Pinch to zoom • Tap parts to select
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Left Panel - Controls */}
+                    <div className="order-2 lg:order-1 lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
+                        <Card className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 border-l-4 border-l-blue-500">
                             <div className="mb-4">
                                 <div className="flex items-center gap-2 mb-2">
                                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Difficulty</h3>
@@ -366,11 +388,11 @@ export default function FaultRoulette() {
                                         }`}>{difficulty?.toUpperCase()}</span>
                                 </div>
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Vehicle</h3>
-                                <p className="font-mono text-lg text-slate-900 dark:text-white">{currentCase.scenario.vehicle}</p>
+                                <p className="font-mono text-base sm:text-lg text-slate-900 dark:text-white">{currentCase.scenario.vehicle}</p>
                             </div>
                             <div>
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customer Complaint</h3>
-                                <p className="italic text-slate-700 dark:text-slate-300 text-lg">
+                                <p className="italic text-slate-700 dark:text-slate-300 text-base sm:text-lg">
                                     "{currentCase.scenario.complaint}"
                                 </p>
                             </div>
@@ -381,9 +403,9 @@ export default function FaultRoulette() {
                             )}
                         </Card>
 
-                        <Card className="p-6 flex-1 flex flex-col">
+                        <Card className="p-4 sm:p-6 flex-1 flex flex-col">
                             <h3 className="font-bold text-slate-900 dark:text-white mb-4">Diagnostic Tool</h3>
-                            <div className="flex-1 bg-slate-900 rounded-lg p-4 font-mono text-green-400 text-sm overflow-y-auto">
+                            <div className="flex-1 bg-slate-900 rounded-lg p-3 sm:p-4 font-mono text-green-400 text-xs sm:text-sm overflow-y-auto min-h-[100px]">
                                 <p>{'>'} SYSTEM: {currentCase.system.toUpperCase()}</p>
                                 <p className="text-red-500">{'>'} FAULT DETECTED</p>
                                 {selectedPart ? (
@@ -401,16 +423,16 @@ export default function FaultRoulette() {
                                         'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                                     }`}>
                                     {feedback.type === 'success' ? <CheckCircle size={16} /> : <XCircle size={16} />}
-                                    {feedback.message}
+                                    <span className="flex-1">{feedback.message}</span>
                                     {feedback.type === 'success' && (
-                                        <span className="ml-auto font-bold">+{roundScore} pts</span>
+                                        <span className="font-bold">+{roundScore} pts</span>
                                     )}
                                 </div>
                             )}
 
                             {/* Correct Answer Display - shown on give up or 3 wrong attempts */}
                             {gameState === 'result' && feedback?.type === 'giveup' && (
-                                <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                                <div className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 sm:p-4 rounded-lg">
                                     <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
                                         💡 Correct Answer
                                     </h4>
@@ -451,24 +473,6 @@ export default function FaultRoulette() {
                                     <RefreshCw className="mr-2" size={16} /> Play Again
                                 </Button>
                             )}
-                        </Card>
-                    </div>
-
-                    {/* Right: 3D View */}
-                    <div className="col-span-9">
-                        <Card className="h-full bg-slate-900 overflow-hidden relative border-0">
-                            <Canvas camera={{ fov: 45, position: [5, 5, 5] }} gl={{ antialias: true }}>
-                                <Suspense fallback={<Loader />}>
-                                    <ambientLight intensity={0.5} />
-                                    <directionalLight position={[10, 10, 5]} intensity={1} />
-                                    <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-                                    <RouletteModel system={currentCase.system} onPartClick={handlePartClick} />
-                                    <OrbitControls makeDefault />
-                                </Suspense>
-                            </Canvas>
-                            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur text-white px-4 py-2 rounded-full text-sm font-bold">
-                                System: {currentCase.system.toUpperCase()}
-                            </div>
                         </Card>
                     </div>
                 </div>

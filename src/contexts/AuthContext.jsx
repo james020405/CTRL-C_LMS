@@ -26,10 +26,16 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const signUp = async (email, password, fullName, metadata = {}) => {
+        // Use window.location.origin to get the correct URL (localhost in dev, production URL when deployed)
+        const redirectUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/login`
+            : 'https://ctrl-c-lms-8f75.vercel.app/login';
+
         return supabase.auth.signUp({
             email,
             password,
             options: {
+                emailRedirectTo: redirectUrl,
                 data: {
                     full_name: fullName,
                     ...metadata,

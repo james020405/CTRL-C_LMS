@@ -116,7 +116,7 @@ export default function StudentLayout() {
                 </Sidebar>
 
                 {/* Main Content */}
-                <main id="main-content" className="flex-1 p-8 overflow-y-auto" role="main" aria-label="Main content">
+                <main id="main-content" className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-50 dark:bg-slate-900" role="main" aria-label="Main content">
                     <Outlet />
                 </main>
             </div>

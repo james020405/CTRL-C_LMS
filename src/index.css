@@ -13,6 +13,29 @@ html {
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+  scroll-behavior: smooth;
+}
+
+/* Prevent horizontal overflow on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Ensure touch targets are usable on mobile only */
+@media (max-width: 768px) {
+
+  button:not(.no-min-height),
+  a:not(.no-min-height),
+  [role="button"]:not(.no-min-height) {
+    min-height: 44px;
+  }
+}
+
+/* Touch optimization */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 @layer base {

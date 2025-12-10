@@ -31,6 +31,7 @@ const StudentCourseView = React.lazy(() => import('./views/student/StudentCourse
 const ProgressDashboard = React.lazy(() => import('./views/student/ProgressDashboard'));
 const Leaderboard = React.lazy(() => import('./views/student/Leaderboard'));
 const ProfileSettings = React.lazy(() => import('./views/student/ProfileSettings'));
+const GamesHub = React.lazy(() => import('./views/student/GamesHub'));
 
 /**
  * Loading fallback component for lazy-loaded routes
@@ -73,6 +74,7 @@ function App() {
                                 <Route path="study" element={<StudyView />} />
                                 <Route path="simulator" element={<SimulatorView />} />
                                 <Route path="flashcards" element={<StudentFlashcards />} />
+                                <Route path="games" element={<GamesHub />} />
                                 <Route path="roulette" element={<FaultRoulette />} />
                                 <Route path="service-writer" element={<ServiceWriter />} />
                                 <Route path="cross-system" element={<CrossSystemDetective />} />

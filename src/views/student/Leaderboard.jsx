@@ -47,24 +47,24 @@ export default function Leaderboard() {
     const isOverall = gameType === 'overall';
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6 px-4 sm:px-0">
             <div className="flex items-center gap-3">
-                <BarChart3 className="text-purple-500" size={32} />
+                <BarChart3 className="text-purple-500 flex-shrink-0" size={28} />
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Leaderboard</h1>
-                    <p className="text-slate-500">Compete with your classmates!</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Leaderboard</h1>
+                    <p className="text-slate-500 text-sm">Compete with your classmates!</p>
                 </div>
             </div>
 
             {/* Filters */}
             <Card className="p-4">
-                <div className="flex flex-wrap gap-4">
-                    <div className="flex-1 min-w-[150px]">
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
                         <label className="text-xs text-slate-500 mb-1 block">Game</label>
                         <select
                             value={gameType}
                             onChange={(e) => setGameType(e.target.value)}
-                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                            className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
                         >
                             {GAME_OPTIONS.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -72,14 +72,14 @@ export default function Leaderboard() {
                         </select>
                     </div>
                     {!isOverall && (
-                        <div className="flex-1 min-w-[150px]">
+                        <div className="flex-1">
                             <label className="text-xs text-slate-500 mb-1 block">Difficulty</label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 sm:gap-2">
                                 {DIFFICULTY_OPTIONS.map(opt => (
                                     <button
                                         key={opt.value}
                                         onClick={() => setDifficulty(opt.value)}
-                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${difficulty === opt.value
+                                        className={`flex-1 py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${difficulty === opt.value
                                             ? `${opt.color} bg-slate-100 dark:bg-slate-700`
                                             : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
                                             }`}
@@ -98,15 +98,15 @@ export default function Leaderboard() {
                 <Card className="p-4 bg-purple-50 dark:bg-purple-900/20 border-l-4 border-l-purple-500">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <User className="text-purple-500" />
+                            <User className="text-purple-500" size={20} />
                             <div>
-                                <p className="text-sm text-slate-500">Your Rank</p>
-                                <p className="text-2xl font-bold text-purple-600">#{leaderboard.userRank}</p>
+                                <p className="text-xs sm:text-sm text-slate-500">Your Rank</p>
+                                <p className="text-xl sm:text-2xl font-bold text-purple-600">#{leaderboard.userRank}</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-slate-500">{isOverall ? 'Total Points' : 'Best Score'}</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                            <p className="text-xs sm:text-sm text-slate-500">{isOverall ? 'Total Points' : 'Best Score'}</p>
+                            <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                                 {leaderboard.userBestScore?.toLocaleString()}
                             </p>
                         </div>
@@ -127,46 +127,75 @@ export default function Leaderboard() {
 
                 {loading ? (
                     <div className="p-8 text-center">
-                        <Loader2 className="animate-spin mx-auto text-slate-400" />
+                        <Loader2 className="animate-spin mx-auto text-slate-400" size={32} />
+                        <p className="text-slate-500 mt-2">Loading leaderboard...</p>
                     </div>
                 ) : leaderboard.topScores.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">
-                        No scores yet. Be the first to play!
+                    <div className="p-8 sm:p-12 text-center">
+                        <Medal className="mx-auto text-slate-300 dark:text-slate-600 mb-4" size={48} />
+                        <p className="text-slate-500 font-medium mb-2">No scores yet</p>
+                        <p className="text-sm text-slate-400 mb-4">Be the first to claim the top spot!</p>
+                        <Button
+                            onClick={() => window.location.href = '/student/dashboard'}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                            Play a Game
+                        </Button>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <div>
                         {leaderboard.topScores.map((entry, index) => {
                             const RankIcon = RANK_ICONS[index] || null;
                             const rankColor = RANK_COLORS[index] || 'text-slate-400';
                             const isCurrentUser = entry.user_id === user?.id;
+                            const isEvenRow = index % 2 === 1;
 
                             return (
                                 <div
                                     key={index}
-                                    className={`flex items-center gap-4 p-4 ${isCurrentUser ? 'bg-purple-50 dark:bg-purple-900/20' : ''
-                                        }`}
+                                    className={`p-3 sm:p-4 transition-colors
+                                        ${isCurrentUser
+                                            ? 'bg-purple-100 dark:bg-purple-900/40 border-l-4 border-l-purple-500'
+                                            : isEvenRow
+                                                ? 'bg-slate-50 dark:bg-slate-800/50'
+                                                : 'bg-white dark:bg-slate-900'
+                                        }
+                                        ${index > 0 ? 'border-t border-slate-100 dark:border-slate-800' : ''}
+                                    `}
                                 >
-                                    <div className={`w-8 text-center font-bold ${rankColor}`}>
-                                        {RankIcon ? <RankIcon size={24} /> : `#${index + 1}`}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-slate-900 dark:text-white">
-                                            {entry.profiles?.full_name || entry.profiles?.email?.split('@')[0] || 'Anonymous'}
-                                            {isCurrentUser && <span className="text-purple-500 ml-2">(You)</span>}
-                                        </p>
-                                        {isOverall && entry.gamesPlayed && (
-                                            <p className="text-xs text-slate-400">
-                                                {entry.gamesPlayed} games played
-                                            </p>
-                                        )}
-                                        {!isOverall && entry.created_at && (
-                                            <p className="text-xs text-slate-400">
-                                                {new Date(entry.created_at).toLocaleDateString()}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="text-xl font-bold text-slate-900 dark:text-white">
-                                        {entry.score.toLocaleString()}
+                                    <div className="flex items-center gap-3">
+                                        {/* Rank Badge */}
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 flex items-center justify-center rounded-full font-bold text-sm ${index < 3
+                                                ? `${rankColor} ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30' : index === 1 ? 'bg-slate-100 dark:bg-slate-700' : 'bg-amber-100 dark:bg-amber-900/30'}`
+                                                : 'text-slate-400 bg-slate-100 dark:bg-slate-800'
+                                            }`}>
+                                            {RankIcon ? <RankIcon size={18} /> : index + 1}
+                                        </div>
+
+                                        {/* Name & Meta */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className={`font-medium truncate text-sm sm:text-base ${isCurrentUser ? 'text-purple-700 dark:text-purple-300' : 'text-slate-900 dark:text-white'}`}>
+                                                    {entry.profiles?.full_name || entry.profiles?.email?.split('@')[0] || 'Anonymous'}
+                                                </p>
+                                                {isCurrentUser && (
+                                                    <span className="flex-shrink-0 text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-200 px-1.5 py-0.5 rounded-full">
+                                                        You
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {isOverall && entry.gamesPlayed && (
+                                                <p className="text-xs text-slate-400">{entry.gamesPlayed} games</p>
+                                            )}
+                                            {!isOverall && entry.created_at && (
+                                                <p className="text-xs text-slate-400">{new Date(entry.created_at).toLocaleDateString()}</p>
+                                            )}
+                                        </div>
+
+                                        {/* Score */}
+                                        <div className={`text-base sm:text-xl font-bold tabular-nums flex-shrink-0 ${isCurrentUser ? 'text-purple-600 dark:text-purple-400' : 'text-slate-900 dark:text-white'}`}>
+                                            {entry.score.toLocaleString()}
+                                        </div>
                                     </div>
                                 </div>
                             );
