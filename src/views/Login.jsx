@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -27,6 +27,34 @@ export default function Login() {
     const location = useLocation();
     const from = location.state?.from?.pathname || '/student/dashboard';
     const isProfessor = from.includes('professor');
+
+    // Detect password recovery session from URL hash
+    useEffect(() => {
+        const handleAuthChange = async () => {
+            // Check if there's a hash in the URL (tokens from Supabase)
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const type = hashParams.get('type');
+
+                // If this is a recovery (password reset) flow, redirect to reset-password
+                if (type === 'recovery') {
+                    navigate('/reset-password' + window.location.hash, { replace: true });
+                    return;
+                }
+            }
+        };
+
+        handleAuthChange();
+
+        // Also listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                navigate('/reset-password', { replace: true });
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
