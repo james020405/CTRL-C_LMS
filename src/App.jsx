@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import Landing from './views/Landing';
 import Login from './views/Login';
 import Register from './views/Register';
+import ResetPassword from './views/ResetPassword';
 import StudentLayout from './components/layouts/StudentLayout';
 
 // Lazy loaded - Heavy components (3D, games, complex features)
@@ -56,6 +57,7 @@ function App() {
                         <Route path="/" element={<Landing />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
                         <Route element={<ProtectedRoute />}>
                             <Route element={<ProfessorRoute />}>
                                 <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
