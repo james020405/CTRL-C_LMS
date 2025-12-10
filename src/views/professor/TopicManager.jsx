@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, FileText, Video, Image as ImageIcon, Link as LinkIcon, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, FileText, Video, Image as ImageIcon, Link as LinkIcon, Trash2, X, Loader2, Upload } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
@@ -15,7 +15,11 @@ export default function TopicManager({ course, onBack }) {
     const [materialTitle, setMaterialTitle] = useState('');
     const [materialType, setMaterialType] = useState('link');
     const [materialUrl, setMaterialUrl] = useState('');
+    const [materialFile, setMaterialFile] = useState(null);
+    const [uploadMode, setUploadMode] = useState('url'); // 'url' or 'file'
     const [savingMaterial, setSavingMaterial] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (course) {
@@ -62,7 +66,7 @@ export default function TopicManager({ course, onBack }) {
         } catch (error) {
             console.error('Error creating topic:', error);
             const errorMessage = error?.message || error?.details || 'Unknown error';
-            alert(`Failed to create topic: ${errorMessage}\n\nIf this says "permission denied", run the SQL schema in Supabase first.`);
+            alert(`Failed to create topic: ${errorMessage}\n\nMake sure you've run the SQL schema in Supabase.`);
         }
     };
 
@@ -85,27 +89,86 @@ export default function TopicManager({ course, onBack }) {
         setMaterialTitle('');
         setMaterialType('link');
         setMaterialUrl('');
+        setMaterialFile(null);
+        setUploadMode('url');
+        setUploadProgress(0);
         setShowMaterialModal(true);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setMaterialFile(file);
+            if (!materialTitle) {
+                setMaterialTitle(file.name.replace(/\.[^/.]+$/, "")); // Use filename without extension
+            }
+            // Auto-detect type
+            if (file.type.includes('pdf')) setMaterialType('pdf');
+            else if (file.type.includes('video')) setMaterialType('video');
+            else if (file.type.includes('image')) setMaterialType('image');
+        }
     };
 
     const handleAddMaterial = async (e) => {
         e.preventDefault();
-        if (!materialTitle.trim() || !materialUrl.trim()) return;
+        if (!materialTitle.trim()) return;
+        if (uploadMode === 'url' && !materialUrl.trim()) return;
+        if (uploadMode === 'file' && !materialFile) return;
 
         setSavingMaterial(true);
+        setUploadProgress(0);
+
         try {
+            let fileUrl = materialUrl;
+
+            // Upload file if in file mode
+            if (uploadMode === 'file' && materialFile) {
+                const fileExt = materialFile.name.split('.').pop();
+                const fileName = `${course.id}/${selectedTopicId}/${Date.now()}.${fileExt}`;
+
+                setUploadProgress(10);
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('materials')
+                    .upload(fileName, materialFile, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (uploadError) {
+                    // Check if bucket doesn't exist
+                    if (uploadError.message.includes('bucket') || uploadError.message.includes('Bucket')) {
+                        throw new Error('Storage bucket "materials" does not exist. Please create it in Supabase Storage.');
+                    }
+                    throw uploadError;
+                }
+
+                setUploadProgress(70);
+
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from('materials')
+                    .getPublicUrl(fileName);
+
+                fileUrl = urlData.publicUrl;
+                setUploadProgress(90);
+            }
+
+            // Save to database
             const { data, error } = await supabase
                 .from('materials')
                 .insert([{
                     title: materialTitle,
                     type: materialType,
-                    url: materialUrl,
+                    url: fileUrl,
                     topic_id: selectedTopicId
                 }])
                 .select()
                 .single();
 
             if (error) throw error;
+
+            setUploadProgress(100);
 
             // Update local state
             setTopics(topics.map(t =>
@@ -122,8 +185,16 @@ export default function TopicManager({ course, onBack }) {
         }
     };
 
-    const handleDeleteMaterial = async (topicId, materialId) => {
+    const handleDeleteMaterial = async (topicId, materialId, materialUrl) => {
         try {
+            // Try to delete from storage if it's a stored file
+            if (materialUrl?.includes('supabase')) {
+                const path = materialUrl.split('/materials/')[1];
+                if (path) {
+                    await supabase.storage.from('materials').remove([path]);
+                }
+            }
+
             const { error } = await supabase.from('materials').delete().eq('id', materialId);
             if (error) throw error;
 
@@ -214,28 +285,28 @@ export default function TopicManager({ course, onBack }) {
                                 ) : (
                                     topic.materials.map((material) => (
                                         <div key={material.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded flex-shrink-0">
                                                     {getIcon(material.type)}
                                                 </div>
-                                                <div>
-                                                    <span className="text-slate-700 dark:text-slate-300 font-medium">{material.title}</span>
+                                                <div className="min-w-0">
+                                                    <span className="text-slate-700 dark:text-slate-300 font-medium block">{material.title}</span>
                                                     {material.url && (
                                                         <a
                                                             href={material.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="block text-xs text-blue-600 hover:underline truncate max-w-xs"
+                                                            className="text-xs text-blue-600 hover:underline truncate block max-w-xs"
                                                         >
-                                                            {material.url}
+                                                            {material.url.length > 50 ? material.url.substring(0, 50) + '...' : material.url}
                                                         </a>
                                                     )}
                                                 </div>
                                             </div>
                                             <Button
                                                 variant="secondary"
-                                                onClick={() => handleDeleteMaterial(topic.id, material.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 h-auto"
+                                                onClick={() => handleDeleteMaterial(topic.id, material.id, material.url)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 h-auto flex-shrink-0"
                                             >
                                                 <Trash2 size={16} />
                                             </Button>
@@ -263,6 +334,32 @@ export default function TopicManager({ course, onBack }) {
                         </div>
 
                         <form onSubmit={handleAddMaterial} className="space-y-4">
+                            {/* Upload Mode Toggle */}
+                            <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadMode('url')}
+                                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${uploadMode === 'url'
+                                            ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                            : 'text-slate-600 dark:text-slate-400'
+                                        }`}
+                                >
+                                    <LinkIcon size={14} className="inline mr-1" />
+                                    URL / Link
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadMode('file')}
+                                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${uploadMode === 'file'
+                                            ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                            : 'text-slate-600 dark:text-slate-400'
+                                        }`}
+                                >
+                                    <Upload size={14} className="inline mr-1" />
+                                    Upload File
+                                </button>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     Title
@@ -293,19 +390,64 @@ export default function TopicManager({ course, onBack }) {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    URL
-                                </label>
-                                <input
-                                    type="url"
-                                    value={materialUrl}
-                                    onChange={(e) => setMaterialUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                                    required
-                                />
-                            </div>
+                            {uploadMode === 'url' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        URL
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={materialUrl}
+                                        onChange={(e) => setMaterialUrl(e.target.value)}
+                                        placeholder="https://..."
+                                        className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                                        required={uploadMode === 'url'}
+                                    />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        File
+                                    </label>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.mov,.jpg,.jpeg,.png,.gif"
+                                        className="hidden"
+                                    />
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-blue-500 transition-colors text-center"
+                                    >
+                                        {materialFile ? (
+                                            <div className="text-sm">
+                                                <FileText className="mx-auto text-blue-600 mb-1" size={24} />
+                                                <p className="font-medium text-slate-700 dark:text-slate-300">{materialFile.name}</p>
+                                                <p className="text-slate-500 text-xs">
+                                                    {(materialFile.size / 1024 / 1024).toFixed(2)} MB
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-slate-500">
+                                                <Upload className="mx-auto mb-1" size={24} />
+                                                <p>Click to select a file</p>
+                                                <p className="text-xs">PDF, DOC, PPT, MP4, Images</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Upload Progress */}
+                            {savingMaterial && uploadProgress > 0 && (
+                                <div className="w-full bg-slate-200 rounded-full h-2">
+                                    <div
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex gap-3 pt-2">
                                 <Button
@@ -318,7 +460,7 @@ export default function TopicManager({ course, onBack }) {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={savingMaterial || !materialTitle || !materialUrl}
+                                    disabled={savingMaterial || !materialTitle || (uploadMode === 'url' ? !materialUrl : !materialFile)}
                                     className="flex-1"
                                 >
                                     {savingMaterial ? (
@@ -326,7 +468,7 @@ export default function TopicManager({ course, onBack }) {
                                     ) : (
                                         <Plus size={16} className="mr-2" />
                                     )}
-                                    Add Material
+                                    {savingMaterial ? 'Uploading...' : 'Add Material'}
                                 </Button>
                             </div>
                         </form>
