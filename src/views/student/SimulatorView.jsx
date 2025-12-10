@@ -3,10 +3,10 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card } from '../../components/ui/Card';
-import { X, Box, Layers, Eye, PlayCircle } from 'lucide-react';
+import { X, Box, Layers, Eye } from 'lucide-react';
 import { getPartName, getPartDescription } from '../../data/partNames';
 
-function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, sequenceStep, systemType }) {
+function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) {
     const { scene, animations } = useGLTF(url);
     const { actions, mixer } = useAnimations(animations, scene);
     const { camera, gl } = useThree();
@@ -118,22 +118,7 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, sequenceMode, 
         // Fall back to manual explosion for models without animations
         let explosionDistance = 0;
 
-        if (sequenceMode) {
-            for (let i = 0; i < meshList.current.length; i++) {
-                const child = meshList.current[i];
-                const data = partsData.current.get(child.uuid);
-
-                if (data) {
-                    const partProgress = Math.max(0, Math.min(1, (sequenceStep - data.partIndex) / 3));
-                    const partExplosion = partProgress * 0.5;
-
-                    const offset = data.explosionDirection.clone().multiplyScalar(partExplosion);
-                    const targetPos = data.originalPosition.clone().add(offset);
-
-                    child.position.lerp(targetPos, delta * 2);
-                }
-            }
-        } else if (isExploded) {
+        if (isExploded) {
             explosionDistance = 0.3;
 
             for (let i = 0; i < meshList.current.length; i++) {
@@ -241,8 +226,7 @@ export default function SimulatorView() {
     const [hoveredPart, setHoveredPart] = React.useState(null);
     const [isExploded, setIsExploded] = React.useState(false);
     const [xrayMode, setXrayMode] = React.useState(false);
-    const [sequenceMode, setSequenceMode] = React.useState(false);
-    const [sequenceStep, setSequenceStep] = React.useState(0);
+
 
     const systems = [
         { id: 'engine', name: 'Engine', model: '/models/Engine.glb' },
@@ -255,29 +239,13 @@ export default function SimulatorView() {
 
     const currentModelUrl = systems.find(s => s.id === currentSystem)?.model;
 
-    useEffect(() => {
-        if (sequenceMode) {
-            const interval = setInterval(() => {
-                setSequenceStep(prev => {
-                    if (prev >= 20) {
-                        return 0;
-                    }
-                    return prev + 1;
-                });
-            }, 500);
 
-            return () => clearInterval(interval);
-        } else {
-            setSequenceStep(0);
-        }
-    }, [sequenceMode]);
 
     const handleSystemChange = (systemId) => {
         setCurrentSystem(systemId);
         setSelectedPart(null);
         setIsExploded(false);
         setXrayMode(false);
-        setSequenceMode(false);
     };
 
     return (
@@ -309,8 +277,8 @@ export default function SimulatorView() {
                     </h3>
 
                     <button
-                        onClick={() => { setIsExploded(!isExploded); setSequenceMode(false); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isExploded && !sequenceMode
+                        onClick={() => setIsExploded(!isExploded)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isExploded
                             ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
@@ -330,16 +298,6 @@ export default function SimulatorView() {
                         <span className="font-medium">X-Ray Mode</span>
                     </button>
 
-                    <button
-                        onClick={() => { setSequenceMode(!sequenceMode); setIsExploded(false); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${sequenceMode
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                            }`}
-                    >
-                        <PlayCircle size={18} />
-                        <span className="font-medium">Sequence Mode</span>
-                    </button>
                 </div>
             </Card>
 
@@ -367,8 +325,7 @@ export default function SimulatorView() {
                                     isExploded={isExploded}
                                     xrayMode={xrayMode}
                                     onHover={setHoveredPart}
-                                    sequenceMode={sequenceMode}
-                                    sequenceStep={sequenceStep}
+
                                     systemType={currentSystem}
                                 />
                             )}
@@ -411,12 +368,7 @@ export default function SimulatorView() {
                         </div>
                     )}
 
-                    {/* Sequence progress */}
-                    {sequenceMode && (
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-6 py-2 rounded-full text-sm font-medium">
-                            Sequence Step: {sequenceStep} / 20
-                        </div>
-                    )}
+
                 </Card>
             </div>
         </div>
