@@ -6,11 +6,12 @@ import CourseManager from './CourseManager';
 import TopicManager from './TopicManager';
 import StudentProgress from './StudentProgress';
 import StudentInsights from './StudentInsights';
+import AIUsageStats from './AIUsageStats';
 import { Card } from '../../components/ui/Card';
 import {
     BookOpen, Users, TrendingUp, Sparkles, FileText,
     Activity, ChevronRight, Loader2, GraduationCap,
-    BarChart3, Brain
+    BarChart3, Brain, Zap
 } from 'lucide-react';
 
 export default function ProfessorDashboard() {
@@ -119,6 +120,7 @@ export default function ProfessorDashboard() {
         { id: 'courses', label: 'Course Management', icon: BookOpen },
         { id: 'progress', label: 'Student Progress', icon: BarChart3 },
         { id: 'insights', label: 'AI Insights', icon: Brain, isNew: true },
+        { id: 'ai-usage', label: 'AI Usage', icon: Zap },
     ];
 
     const statCards = [
@@ -210,8 +212,8 @@ export default function ProfessorDashboard() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${activeTab === tab.id
-                                            ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                 >
                                     <tab.icon size={18} />
@@ -251,6 +253,8 @@ export default function ProfessorDashboard() {
                     <StudentProgress />
                 ) : activeTab === 'insights' ? (
                     <StudentInsights />
+                ) : activeTab === 'ai-usage' ? (
+                    <AIUsageStats />
                 ) : null}
             </main>
         </div>
