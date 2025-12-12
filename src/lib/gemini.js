@@ -11,27 +11,24 @@ let genAI = null;
 let model = null;
 let geminiAvailable = false;
 
-// Initialize Gemini on module load
+// Initialize Gemini as FALLBACK (OpenRouter is primary)
 if (API_KEY) {
-    console.log("🔑 Gemini API key found, initializing...");
+    console.log("🔑 Gemini API key found (FALLBACK)");
     try {
         genAI = new GoogleGenerativeAI(API_KEY);
-        // Use gemma-3-27b-it - practical choice with 14,400 RPD (with conversation history for consistency)
         model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
         geminiAvailable = true;
-        console.log("✅ Gemini model initialized (will test on first use)");
+        console.log("✅ Gemini ready as fallback");
     } catch (error) {
         console.error("❌ Gemini init failed:", error.message);
         geminiAvailable = false;
     }
-} else {
-    console.warn("⚠️ VITE_GEMINI_API_KEY not set - using fallback scenarios");
 }
 
-// OpenRouter fallback (uses OpenAI-compatible API format)
+// OpenRouter PRIMARY AI (uses OpenAI-compatible API format with Kimi K2 free)
 const openRouterAvailable = !!OPENROUTER_API_KEY;
 if (openRouterAvailable) {
-    console.log("🔑 OpenRouter API key found (Kimi K2 fallback available)");
+    console.log("🔑 OpenRouter API key found (Kimi K2 - PRIMARY)");
 }
 
 /**
@@ -187,10 +184,6 @@ const getFallbackScenario = (system, partName) => {
 };
 
 export const generateServiceCustomer = async (difficulty = 'easy') => {
-    if (!model) {
-        return getFallbackServiceCustomer(difficulty);
-    }
-
     // Random Filipino names to force variety
     const firstNames = ['Mang', 'Aling', 'Kuya', 'Ate', 'Tito', 'Tita', 'Sir', 'Ma\'am'];
     const lastNames = ['Jose', 'Maria', 'Pedro', 'Juan', 'Santos', 'Cruz', 'Reyes', 'Garcia', 'Mendoza', 'Torres', 'Ramos', 'Lim', 'Tan', 'Sy', 'Ong'];
@@ -229,9 +222,7 @@ export const generateServiceCustomer = async (difficulty = 'easy') => {
     const range = budgetRanges[difficulty];
     const randomBudget = Math.floor(Math.random() * (range.max - range.min)) + range.min;
 
-    try {
-        checkRateLimit();
-        const prompt = `
+    const prompt = `
 Create a Filipino customer for an auto repair shop simulation.
 
 REQUIRED - Use these EXACT values:
@@ -255,17 +246,35 @@ Return ONLY this JSON (no markdown):
     "actualProblem": "The real technical issue",
     "correctParts": ["part1", "part2", "part3"]
 }
-        `;
+    `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, '').trim();
-        return JSON.parse(text);
-
-    } catch (error) {
-        logger.error("Gemini Service Generation Error:", error);
-        return getFallbackServiceCustomer(difficulty);
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Service customer generated via OpenRouter (Kimi K2)");
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            checkRateLimit();
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Service customer generated via Gemini");
+            return JSON.parse(response.text().replace(/```json|```/g, '').trim());
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static data
+    console.log("📋 Using fallback service customer");
+    return getFallbackServiceCustomer(difficulty);
 };
 
 
@@ -296,12 +305,7 @@ const getFallbackServiceCustomer = (difficulty = 'easy') => {
 };
 
 export const evaluateEstimate = async (customer, estimate, notes) => {
-    if (!model) {
-        return getFallbackEvaluation(customer, estimate);
-    }
-
-    try {
-        const prompt = `
+    const prompt = `
 You are a Filipino customer at an auto repair shop. Respond IN CHARACTER.
 
 YOUR INFO:
@@ -333,17 +337,34 @@ Return ONLY this JSON (no extra text):
   "correctApproach": "If not accepted: what should they have quoted (must be ≤ ₱${customer.budget})? If accepted: null",
   "idealEstimate": If not accepted: number ≤ ${customer.budget}. If accepted: null
 }
-        `;
+    `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, '').trim();
-        return JSON.parse(text);
-
-    } catch (error) {
-        console.error("Gemini Evaluation Error:", error);
-        return getFallbackEvaluation(customer, estimate);
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Estimate evaluated via OpenRouter (Kimi K2)");
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Estimate evaluated via Gemini");
+            return JSON.parse(response.text().replace(/```json|```/g, '').trim());
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static evaluation
+    console.log("📋 Using fallback evaluation");
+    return getFallbackEvaluation(customer, estimate);
 };
 
 const getFallbackEvaluation = (customer, estimate) => {
@@ -407,17 +428,12 @@ const getFallbackEvaluation = (customer, estimate) => {
  * @returns {Promise<string>} - The customer's response
  */
 export const askCustomerQuestion = async (customer, question, conversationHistory = []) => {
-    if (!model) {
-        return getFallbackQuestionResponse(customer, question);
-    }
-
     // Build conversation history string
     const historyText = conversationHistory.length > 0
         ? `\nPREVIOUS CONVERSATION (you MUST be consistent with your previous answers):\n${conversationHistory.map(qa => `- Mechanic asked: "${qa.question}"\n  You answered: "${qa.answer}"`).join('\n')}\n`
         : '';
 
-    try {
-        const prompt = `
+    const prompt = `
 You are ${customer.name}, a ${customer.mood.toLowerCase()} Filipino customer at an auto repair shop.
 
 YOUR CAR PROBLEM: ${customer.complaint}
@@ -434,16 +450,34 @@ CRITICAL RULES:
 6. Stay in character as ${customer.mood}
 
 Reply with ONLY your spoken response:
-        `;
+    `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim().replace(/^["']|["']$/g, '');
-
-    } catch (error) {
-        console.error("Gemini Question Error:", error);
-        return getFallbackQuestionResponse(customer, question);
+    // Try OpenRouter first (unlimited usage)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Customer response via OpenRouter (Kimi K2)");
+            return text.trim().replace(/^["']|["']$/g, '');
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Customer response via Gemini");
+            return response.text().trim().replace(/^["']|["']$/g, '');
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static response
+    console.log("📋 Using fallback customer response");
+    return getFallbackQuestionResponse(customer, question);
 };
 
 const getFallbackQuestionResponse = (customer, question) => {
@@ -492,12 +526,7 @@ const getFallbackQuestionResponse = (customer, question) => {
  * @returns {Promise<string>} - The technician's findings
  */
 export const askTechnicianToCheck = async (customer, command) => {
-    if (!model) {
-        return getFallbackTechnicianResponse(customer, command);
-    }
-
-    try {
-        const prompt = `
+    const prompt = `
 You are an experienced automotive technician at a repair shop in the Philippines.
 
 VEHICLE: ${customer.vehicle}
@@ -513,16 +542,34 @@ Respond with your findings in 2-3 sentences. Be technical but clear.
 - Include specific readings/measurements when applicable
 
 Reply with ONLY your spoken response (no quotes, no labels):
-        `;
+    `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim().replace(/^["']|["']$/g, '');
-
-    } catch (error) {
-        console.error("Gemini Technician Command Error:", error);
-        return getFallbackTechnicianResponse(customer, command);
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Technician response via OpenRouter (Kimi K2)");
+            return text.trim().replace(/^["']|["']$/g, '');
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Technician response via Gemini");
+            return response.text().trim().replace(/^["']|["']$/g, '');
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static response
+    console.log("📋 Using fallback technician response");
+    return getFallbackTechnicianResponse(customer, command);
 };
 
 const getFallbackTechnicianResponse = (customer, command) => {
@@ -587,17 +634,13 @@ const getFallbackTechnicianResponse = (customer, command) => {
  * @returns {Promise<Object>} - The case object
  */
 export const generateCrossSystemCase = async (difficulty = 'easy') => {
-    if (!model) {
-        return getCrossSystemCase(difficulty);
-    }
-
     const difficultyGuides = {
         easy: 'The connection between systems should be relatively obvious with clear clues.',
         medium: 'The connection requires some detective work. Symptoms could point to 2-3 possible systems.',
         hard: 'The connection is subtle. Multiple red herrings, intermittent symptoms, or chain reactions across 3+ systems.'
     };
 
-    // Random system combinations to force variety - pick randomly each time
+    // Random system combinations to force variety
     const systemCombos = [
         { symptom: 'Brakes', root: 'Suspension', example: 'bad control arm causing pulling' },
         { symptom: 'Engine', root: 'Electrical', example: 'bad ground causing misfires' },
@@ -656,11 +699,9 @@ Return ONLY this JSON (no markdown):
     "correctParts": ["Part1", "Part2"]
 }`;
 
-    try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, '').trim();
-        const caseData = JSON.parse(text);
+    // Helper to process and shuffle case data
+    const processCaseData = (text) => {
+        const caseData = JSON.parse(text.replace(/```json|```/g, '').trim());
         caseData.id = `ai-${Date.now()}`;
         caseData.difficulty = difficulty;
 
@@ -675,12 +716,35 @@ Return ONLY this JSON (no markdown):
                 opt.id = `option${idx + 1}`;
             });
         }
-
         return caseData;
-    } catch (error) {
-        console.error("Cross-System Case Generation Error:", error);
-        return getCrossSystemCase(difficulty);
+    };
+
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Cross-system case generated via OpenRouter (Kimi K2)");
+            return processCaseData(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Cross-system case generated via Gemini");
+            return processCaseData(response.text());
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static data
+    console.log("📋 Using fallback cross-system case");
+    return getCrossSystemCase(difficulty);
 };
 
 /**
@@ -779,7 +843,18 @@ Return ONLY this JSON (no markdown):
         };
     };
 
-    // Try Gemini first
+    // Try OpenRouter first (unlimited usage with Kimi K2)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Chain Reaction generated via OpenRouter (Kimi K2)");
+            return parseScenario(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
+    }
+
+    // Try Gemini as fallback
     if (model) {
         try {
             checkRateLimit();
@@ -789,18 +864,7 @@ Return ONLY this JSON (no markdown):
             console.log("✅ Chain Reaction generated via Gemini");
             return parseScenario(text);
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
-        }
-    }
-
-    // Try OpenRouter as fallback
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Chain Reaction generated via OpenRouter (Kimi K2)");
-            return parseScenario(text);
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
+            console.warn("⚠️ Gemini failed:", geminiError.message);
         }
     }
 

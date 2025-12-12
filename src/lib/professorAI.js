@@ -1,23 +1,63 @@
 /**
- * Professor AI Module - Uses Gemini 2.5 Flash for high-quality insights
- * Separate from student AI to use better model for professor features
+ * Professor AI Module - Uses OpenRouter (Kimi K2) as primary, Gemini as fallback
+ * Separate from student AI to handle professor-specific features
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-let professorModel = null;
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-// Initialize Gemini 2.5 Flash for professor features
+let professorModel = null;
+let openRouterAvailable = false;
+
+// OpenRouter initialization (PRIMARY)
+if (OPENROUTER_API_KEY) {
+    openRouterAvailable = true;
+    console.log("🔑 Professor AI: OpenRouter ready (Kimi K2 - PRIMARY)");
+}
+
+// Initialize Gemini as FALLBACK
 if (API_KEY) {
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
-        // Use Gemini 2.5 Flash for professor AI (faster, better quality)
         professorModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        console.log("✅ Professor AI initialized (Gemini 2.0 Flash)");
+        console.log("✅ Professor AI: Gemini ready (FALLBACK)");
     } catch (error) {
-        console.error("❌ Professor AI init failed:", error.message);
+        console.error("❌ Professor Gemini init failed:", error.message);
     }
+}
+
+/**
+ * Call OpenRouter API for professor AI
+ */
+async function callProfessorOpenRouter(prompt) {
+    if (!OPENROUTER_API_KEY) {
+        throw new Error("OpenRouter API key not configured");
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Ctrl C Academy - Professor AI"
+        },
+        body: JSON.stringify({
+            model: "moonshotai/kimi-k2:free",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "";
 }
 
 /**
@@ -27,11 +67,6 @@ if (API_KEY) {
  * @returns {Promise<Object>} - AI-generated insights
  */
 export const generateTeachingInsights = async (students, gameStats) => {
-    if (!professorModel) {
-        console.warn("Professor AI not available, using fallback insights");
-        return getFallbackInsights(students, gameStats);
-    }
-
     // Prepare data summary for AI
     const activeStudents = students.filter(s => s.gamesPlayed > 0);
     const totalStudents = students.length;
@@ -94,15 +129,32 @@ Focus on:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-    try {
-        const result = await professorModel.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, '').trim();
-        return JSON.parse(text);
-    } catch (error) {
-        console.error("Professor AI generation error:", error);
-        return getFallbackInsights(students, gameStats);
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callProfessorOpenRouter(prompt);
+            console.log("✅ Professor insights generated via OpenRouter (Kimi K2)");
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
     }
+
+    // Try Gemini as fallback
+    if (professorModel) {
+        try {
+            const result = await professorModel.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Professor insights generated via Gemini");
+            return JSON.parse(response.text().replace(/```json|```/g, '').trim());
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static insights
+    console.log("📋 Using fallback professor insights");
+    return getFallbackInsights(students, gameStats);
 };
 
 /**
