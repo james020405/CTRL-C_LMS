@@ -16,7 +16,7 @@ const GAME_NAMES = {
     service_writer: 'Service Writer',
     cross_system: 'Cross-System Detective',
     tool_selection: 'Tool Selection',
-    code_cracker: 'Code Cracker'
+    chain_reaction: 'Chain Reaction'
 };
 
 export default function StudentInsights() {
@@ -107,7 +107,7 @@ export default function StudentInsights() {
 
             // Calculate game statistics
             const gameStatsData = {};
-            ['fault_roulette', 'service_writer', 'cross_system', 'tool_selection', 'code_cracker'].forEach(gameType => {
+            ['fault_roulette', 'service_writer', 'cross_system', 'tool_selection', 'chain_reaction'].forEach(gameType => {
                 const gameScores = scores.filter(s => s.game_type === gameType);
                 const avgScore = gameScores.length > 0
                     ? Math.round(gameScores.reduce((sum, s) => sum + s.score, 0) / gameScores.length)
@@ -303,10 +303,10 @@ export default function StudentInsights() {
                                 <div key={idx} className="p-4 bg-white dark:bg-slate-800 rounded-xl">
                                     <div className="flex items-start gap-3">
                                         <div className={`p-1.5 rounded-lg ${rec.priority === 'high'
-                                                ? 'bg-red-100 dark:bg-red-900/30'
-                                                : rec.priority === 'medium'
-                                                    ? 'bg-yellow-100 dark:bg-yellow-900/30'
-                                                    : 'bg-green-100 dark:bg-green-900/30'
+                                            ? 'bg-red-100 dark:bg-red-900/30'
+                                            : rec.priority === 'medium'
+                                                ? 'bg-yellow-100 dark:bg-yellow-900/30'
+                                                : 'bg-green-100 dark:bg-green-900/30'
                                             }`}>
                                             {rec.priority === 'high' ? (
                                                 <AlertTriangle className="text-red-600" size={16} />
@@ -367,9 +367,9 @@ export default function StudentInsights() {
                                 <div key={student.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${idx === 0 ? 'bg-yellow-500' :
-                                                idx === 1 ? 'bg-slate-400' :
-                                                    idx === 2 ? 'bg-amber-600' :
-                                                        'bg-slate-300'
+                                            idx === 1 ? 'bg-slate-400' :
+                                                idx === 2 ? 'bg-amber-600' :
+                                                    'bg-slate-300'
                                             }`}>
                                             {idx + 1}
                                         </div>
@@ -473,10 +473,10 @@ export default function StudentInsights() {
                             <div
                                 key={gameType}
                                 className={`p-4 rounded-xl text-center transition-all ${isStrong
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500'
-                                        : isWeak
-                                            ? 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-500'
-                                            : 'bg-slate-50 dark:bg-slate-800'
+                                    ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500'
+                                    : isWeak
+                                        ? 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-500'
+                                        : 'bg-slate-50 dark:bg-slate-800'
                                     }`}
                             >
                                 <p className="text-xs text-slate-500 mb-1 truncate">{gameName}</p>

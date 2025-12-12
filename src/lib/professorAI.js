@@ -69,7 +69,7 @@ ${gamePerformance || 'No game data yet'}
 TOP PERFORMERS: ${topStudents || 'None yet'}
 
 CONTEXT:
-- Games include: Fault Roulette (diagnosing faults), Service Writer (customer interaction), Cross-System Detective (system connections), Tool Selection, Code Cracker (OBD codes)
+- Games include: Fault Roulette (diagnosing faults), Service Writer (customer interaction), Cross-System Detective (system connections), Tool Selection, Chain Reaction (cascade effects)
 - This is a practical automotive education LMS
 - Students are learning car repair and diagnostics
 
@@ -134,7 +134,7 @@ const getFallbackInsights = (students, gameStats) => {
             service_writer: 'customer communication',
             cross_system: 'system interconnections',
             tool_selection: 'tool identification',
-            code_cracker: 'OBD code interpretation'
+            chain_reaction: 'system cascade effects'
         };
         recommendations.push({
             title: `Focus on ${gameNames[weakestGame[0]] || weakestGame[0]}`,
