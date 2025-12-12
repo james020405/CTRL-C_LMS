@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCrossSystemCase } from '../data/crossSystemCases';
-import { getCodeChallenge } from '../data/obdCodes';
 import logger from './logger';
 
 // Initialize Gemini with multiple model fallbacks

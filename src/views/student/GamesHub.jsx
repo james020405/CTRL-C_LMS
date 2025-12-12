@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import {
-    Gamepad2, Target, FileText, Wrench, Puzzle, Cpu,
+    Gamepad2, Target, FileText, Wrench, Puzzle,
     Trophy, ArrowRight, Sparkles
 } from 'lucide-react';
 
@@ -48,14 +48,14 @@ const games = [
         route: '/student/tool-selection',
     },
     {
-        id: 'code-cracker',
-        title: 'Code Cracker',
-        description: 'Decode OBD-II diagnostic trouble codes and identify the issue.',
-        icon: Cpu,
-        color: 'from-amber-500 to-yellow-500',
-        bgColor: 'bg-amber-500/10',
-        textColor: 'text-amber-500',
-        route: '/student/code-cracker',
+        id: 'chain-reaction',
+        title: 'System Chain Reaction',
+        description: 'Predict how failures cascade through interconnected vehicle systems.',
+        icon: Puzzle,
+        color: 'from-orange-500 to-red-500',
+        bgColor: 'bg-orange-500/10',
+        textColor: 'text-orange-500',
+        route: '/student/chain-reaction',
     },
 ];
 
