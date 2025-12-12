@@ -665,119 +665,87 @@ export const evaluateCrossSystemDiagnosis = (caseData, selectedOptionId) => {
 };
 
 // ============================================
-// CODE CRACKER GAME FUNCTIONS
+// SYSTEM CHAIN REACTION GAME FUNCTIONS
 // ============================================
 
 /**
- * Generate a code challenge for the Code Cracker game
+ * Generate a chain reaction scenario using AI
  * @param {string} difficulty - 'easy', 'medium', or 'hard'
- * @param {string} mode - 'code_to_meaning' | 'symptoms_to_code' | 'code_to_action'
- * @returns {Promise<Object>} - Challenge object with question, options, explanation
+ * @returns {Promise<Object>} - Scenario object with failure, effects, options
  */
-export const generateCodeChallenge = async (difficulty = 'easy', mode = 'code_to_meaning') => {
+export const generateChainReactionScenario = async (difficulty = 'easy') => {
+    // Import fallback dynamically to avoid circular dependencies
+    const { getChainReactionScenario } = await import('../data/chainReactionData');
+
     if (!model) {
-        return getCodeChallenge(difficulty, mode);
+        return getChainReactionScenario(difficulty);
     }
 
     const difficultyGuides = {
-        easy: 'Use common, well-known P0 codes like P0300-P0306 (misfires), P0171/P0174 (lean), P0420 (catalyst)',
-        medium: 'Use sensor codes like P0100-range (MAF), P0130-range (O2 sensors), P0400-range (EGR)',
-        hard: 'Use complex codes: VVT codes (P0011-P0022), transmission codes (P0700+), or manufacturer-specific codes'
+        easy: 'Simple 2-system chain (A fails → B affected). Use common issues like thermostat, battery, serpentine belt.',
+        medium: 'Medium 3-system chain (A fails → B affected → C affected). Use sensor failures, vacuum leaks, fuel pump issues.',
+        hard: 'Complex 4+ system chain with multiple effects. Use timing chain, head gasket, transmission overheating scenarios.'
     };
 
+    const automotiveSystems = ['Engine', 'Cooling', 'Electrical', 'Transmission', 'Brakes', 'Steering', 'Suspension', 'Fuel System', 'Exhaust', 'HVAC', 'Ignition'];
+    const primarySystem = automotiveSystems[Math.floor(Math.random() * automotiveSystems.length)];
     const randomSeed = Math.floor(Math.random() * 10000);
-
-    // Mode-specific prompts to avoid revealing the answer
-    const modePrompts = {
-        code_to_meaning: `Create a question where the student sees an OBD code and must identify what it means.
-The code should be displayed, and options should be different MEANINGS (not codes).
-
-Return ONLY this JSON (no markdown):
-{
-    "code": "P0XXX",
-    "question": "A vehicle presents with a steady illuminated check engine light and diagnostic trouble code P0XXX. What is the FIRST appropriate diagnostic step?",
-    "options": [
-        {"id": "option1", "text": "The correct meaning of the code", "isCorrect": true},
-        {"id": "option2", "text": "Wrong meaning (different code's meaning)", "isCorrect": false},
-        {"id": "option3", "text": "Wrong meaning (different code's meaning)", "isCorrect": false},
-        {"id": "option4", "text": "Wrong meaning (different code's meaning)", "isCorrect": false}
-    ],
-    "explanation": "Why the correct answer is right and what the code means",
-    "correctAction": "What a technician should do when seeing this code",
-    "category": "Misfire/Fuel System/Emissions/etc"
-}`,
-        symptoms_to_code: `Create a question where the student sees SYMPTOMS and must identify which OBD CODE would be present.
-DO NOT include a "code" field in your response - the student must figure out the code from symptoms.
-The question should describe symptoms, and each option should be a different OBD code WITH its meaning.
-
-Return ONLY this JSON (no markdown):
-{
-    "question": "A vehicle is experiencing [specific symptoms like rough idle, check engine light, etc.]. During a visual inspection, [additional findings]. A scan tool reveals [hint without giving away the code]. Which code is most likely present?",
-    "options": [
-        {"id": "option1", "text": "P0XXX - Correct code meaning", "isCorrect": true},
-        {"id": "option2", "text": "P0YYY - Wrong but related code meaning", "isCorrect": false},
-        {"id": "option3", "text": "P0ZZZ - Wrong but plausible code meaning", "isCorrect": false},
-        {"id": "option4", "text": "P0WWW - Wrong but plausible code meaning", "isCorrect": false}
-    ],
-    "explanation": "Why these symptoms point to this specific code",
-    "correctAction": "What a technician should do when seeing this code",
-    "category": "Misfire/Fuel System/Emissions/etc"
-}`,
-        code_to_action: `Create a question where the student sees an OBD code and its meaning, then must identify the correct diagnostic ACTION.
-The code and meaning should be displayed, and options should be different ACTIONS.
-
-Return ONLY this JSON (no markdown):
-{
-    "code": "P0XXX",
-    "meaning": "What this code means",
-    "question": "Code P0XXX (meaning) is present. What is the FIRST appropriate diagnostic step?",
-    "options": [
-        {"id": "option1", "text": "The correct diagnostic action", "isCorrect": true},
-        {"id": "option2", "text": "Wrong action that wastes time/money", "isCorrect": false},
-        {"id": "option3", "text": "Wrong action that doesn't address root cause", "isCorrect": false},
-        {"id": "option4", "text": "Wrong action that's unrelated", "isCorrect": false}
-    ],
-    "explanation": "Why this diagnostic approach is correct",
-    "correctAction": "The correct diagnostic action in detail",
-    "category": "Misfire/Fuel System/Emissions/etc"
-}`
-    };
 
     try {
         checkRateLimit();
-        const prompt = `You are an automotive instructor creating an OBD-II code quiz.
+        const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz about how failures cascade through interconnected vehicle systems.
 
 DIFFICULTY: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
 
+PRIMARY SYSTEM: ${primarySystem}
 Random seed for variety: ${randomSeed}
 
-${modePrompts[mode]}`;
+Create a scenario where a failure in one system causes a cascade effect on other systems.
+
+Return ONLY this JSON (no markdown):
+{
+    "primaryFailure": "Short description of what failed (e.g., 'Thermostat stuck open')",
+    "affectedSystem": "${primarySystem}",
+    "scenario": "Customer complaint and symptoms they describe",
+    "chainEffect": "Correct answer: System A fails → Effect on B → Effect on C (use arrows)",
+    "wrongEffects": [
+        "Plausible but wrong chain effect #1",
+        "Plausible but wrong chain effect #2", 
+        "Plausible but wrong chain effect #3"
+    ],
+    "explanation": "Detailed explanation of why and how the cascade happens",
+    "systems": ["List", "Of", "Affected", "Systems"]
+}`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text().replace(/```json|```/g, '').trim();
-        const challenge = JSON.parse(text);
+        const scenario = JSON.parse(text);
 
-        // For symptoms_to_code mode, ensure code field is removed (don't show answer)
-        if (mode === 'symptoms_to_code') {
-            delete challenge.code;
+        // Create options array with shuffled order
+        const options = [
+            { id: 'correct', text: scenario.chainEffect, isCorrect: true },
+            ...scenario.wrongEffects.map((effect, i) => ({ id: `wrong${i}`, text: effect, isCorrect: false }))
+        ];
+
+        // Shuffle options
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
         }
+        options.forEach((opt, idx) => {
+            opt.id = `option${idx + 1}`;
+        });
 
-        // Shuffle options so correct isn't always first
-        if (challenge.options && challenge.options.length > 0) {
-            for (let i = challenge.options.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [challenge.options[i], challenge.options[j]] = [challenge.options[j], challenge.options[i]];
-            }
-            challenge.options.forEach((opt, idx) => {
-                opt.id = `option${idx + 1}`;
-            });
-        }
-
-        return challenge;
+        return {
+            ...scenario,
+            options,
+            id: `ai-${Date.now()}`
+        };
     } catch (error) {
-        console.error("Code Challenge Generation Error:", error);
-        return getCodeChallenge(difficulty, mode);
+        console.error("Chain Reaction Generation Error:", error);
+        return getChainReactionScenario(difficulty);
     }
 };
+
