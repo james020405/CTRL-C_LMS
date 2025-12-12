@@ -4,9 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { calculateNextReview, getIntervalPreviews, RATING, formatInterval } from '../../lib/spacedRepetition';
 import { Plus, Trash2, RotateCw, CheckCircle, BrainCircuit, Loader2, Layers, FolderPlus, RotateCcw, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudentFlashcards() {
     const { user } = useAuth();
@@ -18,6 +19,9 @@ export default function StudentFlashcards() {
     const [isFlipped, setIsFlipped] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
+    // Dialog State
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+
     // Decks State
     const [decks, setDecks] = useState([]);
     const [selectedDeck, setSelectedDeck] = useState('All');
@@ -27,6 +31,9 @@ export default function StudentFlashcards() {
     const [newBack, setNewBack] = useState('');
     const [newDeck, setNewDeck] = useState('');
     const [creating, setCreating] = useState(false);
+
+    // Deck Selector State
+    const [isCreatingDeck, setIsCreatingDeck] = useState(false);
 
     // Stats
     const [sessionStats, setSessionStats] = useState({ again: 0, hard: 0, good: 0, easy: 0 });
@@ -99,6 +106,8 @@ export default function StudentFlashcards() {
             }
             setNewFront('');
             setNewBack('');
+            // Don't reset deck if user might add more to same deck, but reset custom toggle if desired?
+            // Let's keep deck selected for convenience
             setShowForm(false);
         } catch (error) {
             alert('Failed to create card. Please try again.');
@@ -115,6 +124,41 @@ export default function StudentFlashcards() {
             setCards(cards.filter(c => c.id !== id));
         } catch (error) {
             console.error('Error deleting card:', error);
+        }
+    };
+
+    const handleResetDeck = () => {
+        setShowResetConfirm(true);
+    };
+
+    const confirmResetDeck = async () => {
+        const cardsToReset = selectedDeck === 'All' ? cards : cards.filter(c => c.deck_name === selectedDeck);
+        const ids = cardsToReset.map(c => c.id);
+
+        try {
+            const updates = {
+                ease_factor: 2.5,
+                interval_days: 0,
+                repetitions: 0,
+                next_review_date: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('student_flashcards')
+                .update(updates)
+                .in('id', ids);
+
+            if (error) throw error;
+
+            // Update local state
+            setCards(cards.map(c => ids.includes(c.id) ? { ...c, ...updates } : c));
+            // Success feedback could be a toast, but keeping it simple for now or adding a Quick success message?
+            // alert("Deck reset successfully!"); // Removing alert as requested for "in-page" feel
+        } catch (error) {
+            console.error('Error resetting deck:', error);
+            alert("Failed to reset deck.");
+        } finally {
+            setShowResetConfirm(false);
         }
     };
 
@@ -158,13 +202,13 @@ export default function StudentFlashcards() {
             });
 
         // Anki-style learning queue logic:
-        // If interval_days = 0 (Again was pressed), re-queue the card
+        // If interval_days < 1 (Still in learning steps like 1 min, 7 mins), re-queue the card
         // If interval_days >= 1, card has "graduated" and leaves the session
 
         setIsFlipped(false);
 
         setTimeout(() => {
-            if (updates.interval_days === 0) {
+            if (updates.interval_days < 1) {
                 // Card needs to be re-studied - move it to the end of the queue
                 const newQueue = [...dueCards];
                 // Remove current card from its position
@@ -243,7 +287,7 @@ export default function StudentFlashcards() {
                                 exit={{ opacity: 0, x: -100 }}
                                 className="w-full"
                             >
-                                {/* Flashcard */}
+                                {/* Flashcard with fixed 3D transform */}
                                 <div
                                     onClick={() => setIsFlipped(!isFlipped)}
                                     className="cursor-pointer"
@@ -348,7 +392,7 @@ export default function StudentFlashcards() {
                             >
                                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Session Complete!</h3>
-                                <p className="text-slate-500 mb-6">You reviewed {dueCards.length} cards</p>
+                                <p className="text-slate-500 mb-6">You reviewed {dueCards.length + (sessionStats.again + sessionStats.hard + sessionStats.good + sessionStats.easy)} cards</p>
 
                                 {/* Stats */}
                                 <div className="grid grid-cols-4 gap-2 mb-6 text-center">
@@ -409,6 +453,11 @@ export default function StudentFlashcards() {
                         <RotateCw size={20} className="mr-2" />
                         Study ({dueCount} due)
                     </Button>
+                    {dueCount < filteredCards.length && (
+                        <Button onClick={handleResetDeck} variant="ghost" size="icon" title="Reset Progress (Study All)">
+                            <RotateCcw size={20} className="text-slate-400 hover:text-slate-600" />
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -449,17 +498,48 @@ export default function StudentFlashcards() {
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Deck</label>
                                 <div className="relative">
                                     <FolderPlus className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                    <Input
-                                        value={newDeck}
-                                        onChange={(e) => setNewDeck(e.target.value)}
-                                        placeholder="e.g. Engine Parts"
-                                        className="pl-10"
-                                        list="deck-suggestions"
-                                        required
-                                    />
-                                    <datalist id="deck-suggestions">
-                                        {decks.map(d => <option key={d} value={d} />)}
-                                    </datalist>
+
+                                    {!isCreatingDeck ? (
+                                        <select
+                                            value={newDeck}
+                                            onChange={(e) => {
+                                                if (e.target.value === 'NEW_DECK_OPTION') {
+                                                    setIsCreatingDeck(true);
+                                                    setNewDeck('');
+                                                } else {
+                                                    setNewDeck(e.target.value);
+                                                }
+                                            }}
+                                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white appearance-none cursor-pointer"
+                                            required
+                                        >
+                                            <option value="" disabled>Select a deck...</option>
+                                            {decks.map(d => <option key={d} value={d}>{d}</option>)}
+                                            <option value="NEW_DECK_OPTION" className="font-bold text-purple-600">+ Create New Deck</option>
+                                        </select>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <Input
+                                                value={newDeck}
+                                                onChange={(e) => setNewDeck(e.target.value)}
+                                                placeholder="Enter deck name..."
+                                                className="pl-10 flex-1"
+                                                required
+                                                autoFocus
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="px-3"
+                                                onClick={() => {
+                                                    setIsCreatingDeck(false);
+                                                    setNewDeck('');
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="md:col-span-2">
@@ -535,6 +615,17 @@ export default function StudentFlashcards() {
                     </div>
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={showResetConfirm}
+                onClose={() => setShowResetConfirm(false)}
+                onConfirm={confirmResetDeck}
+                title="Reset Deck Progress?"
+                description="This will reset the interval and learning progress for all cards in the current view. They will all become 'New' cards."
+                confirmText="Yes, Reset All"
+                cancelText="Cancel"
+                variant="warning"
+            />
         </div>
     );
 }

@@ -34,14 +34,19 @@ export function calculateNextReview(card, rating) {
 
     if (rating === RATING.AGAIN) {
         // Failed - reset to beginning
-        newInterval = 0; // Review in 1 minute (learning phase)
+        newInterval = 0.000694; // ~1 minute (1/1440 days)
         newEase = Math.max(MIN_EASE, ease_factor - 0.2);
         newReps = 0;
     } else if (rating === RATING.HARD) {
-        // Hard - small interval increase, ease penalty
+        // Hard
         if (repetitions === 0) {
-            newInterval = 1; // 1 day for first review
+            newInterval = 0.00486; // ~7 minutes (7/1440 days) for first review
         } else {
+            // For existing, just 1.2x (min 1 day) behavior, or keep it fractional if it was already fractional?
+            // Let's stick to days for graduated cards.
+            // If current interval is small (<1 day), graduate to 1 day?
+            // Anki behavior: Hard on learning card -> avg of steps?
+            // Let's keep it simple: Hard on graduated -> 1.2x. Hard on learning (<1 day) -> 1 day (graduate).
             newInterval = Math.max(1, Math.round(interval_days * 1.2));
         }
         newEase = Math.max(MIN_EASE, ease_factor - 0.15);
@@ -69,12 +74,8 @@ export function calculateNextReview(card, rating) {
 
     // Calculate next review date
     const nextReviewDate = new Date();
-    if (newInterval === 0) {
-        // Learning phase - review in 10 minutes
-        nextReviewDate.setMinutes(nextReviewDate.getMinutes() + 10);
-    } else {
-        nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
-    }
+    // Add interval (in days)
+    nextReviewDate.setTime(nextReviewDate.getTime() + (newInterval * 24 * 60 * 60 * 1000));
 
     return {
         ease_factor: Math.round(newEase * 100) / 100,
@@ -104,9 +105,11 @@ export function getIntervalPreviews(card) {
  * Format interval for display
  */
 export function formatInterval(days) {
-    if (days === 0) return '10 min';
+    if (days < 0.001) return '1 min';        // ~1 min (0.00069)
+    if (days < 0.01) return Math.round(days * 24 * 60) + ' min'; // e.g. 7 min
+    if (days < 1) return Math.round(days * 24) + ' hr';
     if (days === 1) return '1 day';
-    if (days < 30) return `${days} days`;
+    if (days < 30) return `${Math.round(days)} days`;
     if (days < 365) return `${Math.round(days / 30)} mo`;
     return `${Math.round(days / 365)} yr`;
 }
