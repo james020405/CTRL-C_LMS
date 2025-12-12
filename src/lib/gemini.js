@@ -26,11 +26,6 @@ if (API_KEY) {
 }
 
 // OpenRouter PRIMARY AI (uses OpenAI-compatible API format with Kimi K2 free)
-// DEBUG: Log whether env variable exists
-console.log("🔍 DEBUG: OPENROUTER_API_KEY exists?", !!OPENROUTER_API_KEY);
-console.log("🔍 DEBUG: OPENROUTER_API_KEY starts with:", OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 15) + "..." : "undefined");
-console.log("🔍 DEBUG: All VITE_ env vars:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-
 const openRouterAvailable = !!OPENROUTER_API_KEY;
 if (openRouterAvailable) {
     console.log("🔑 OpenRouter API key found (Kimi K2 - PRIMARY)");
@@ -441,22 +436,25 @@ export const askCustomerQuestion = async (customer, question, conversationHistor
         : '';
 
     const prompt = `
-You are ${customer.name}, a ${customer.mood.toLowerCase()} Filipino customer at an auto repair shop.
+You are ROLEPLAYING as ${customer.name}, a ${customer.mood.toLowerCase()} Filipino customer at an auto repair shop.
+The SERVICE WRITER (the person asking you questions) works at the shop and is helping you.
 
 YOUR CAR PROBLEM: ${customer.complaint}
 YOUR VEHICLE: ${customer.vehicle}
 ${historyText}
-The mechanic NOW asks: "${question}"
+The SERVICE WRITER NOW asks you: "${question}"
 
 CRITICAL RULES:
-1. Be CONSISTENT with your previous answers - do NOT contradict what you already said
-2. Answer ONLY the new question
-3. Do NOT repeat your original complaint
-4. Do NOT introduce yourself
-5. Keep response to 1-2 sentences in Taglish
-6. Stay in character as ${customer.mood}
+1. You are the CUSTOMER (${customer.name}). The Service Writer is NOT named ${customer.name} - that's YOUR name.
+2. Be CONSISTENT with your previous answers - do NOT contradict what you already said
+3. Answer ONLY the new question
+4. Do NOT repeat your original complaint
+5. Do NOT introduce yourself
+6. Keep response to 1-2 sentences in Taglish
+7. Stay in character as ${customer.mood}
+8. NEVER call the Service Writer by your own name
 
-Reply with ONLY your spoken response:
+Reply with ONLY your spoken response as the customer:
     `;
 
     // Try OpenRouter first (unlimited usage)
