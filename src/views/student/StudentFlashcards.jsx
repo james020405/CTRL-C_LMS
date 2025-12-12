@@ -127,7 +127,7 @@ export default function StudentFlashcards() {
             return;
         }
 
-        // Shuffle due cards
+        // Shuffle due cards and create learning queue
         const shuffled = [...due].sort(() => Math.random() - 0.5);
         setDueCards(shuffled);
         setCurrentCardIndex(0);
@@ -148,16 +148,6 @@ export default function StudentFlashcards() {
         const updatedCard = { ...currentCard, ...updates };
         setCards(cards.map(c => c.id === currentCard.id ? updatedCard : c));
 
-        // Move to next card
-        setIsFlipped(false);
-        setTimeout(() => {
-            if (currentCardIndex < dueCards.length - 1) {
-                setCurrentCardIndex(currentCardIndex + 1);
-            } else {
-                setCurrentCardIndex(-1); // Done
-            }
-        }, 200);
-
         // Background DB update
         supabase
             .from('student_flashcards')
@@ -166,6 +156,45 @@ export default function StudentFlashcards() {
             .then(({ error }) => {
                 if (error) console.error('Error updating card:', error);
             });
+
+        // Anki-style learning queue logic:
+        // If interval_days = 0 (Again was pressed), re-queue the card
+        // If interval_days >= 1, card has "graduated" and leaves the session
+
+        setIsFlipped(false);
+
+        setTimeout(() => {
+            if (updates.interval_days === 0) {
+                // Card needs to be re-studied - move it to the end of the queue
+                const newQueue = [...dueCards];
+                // Remove current card from its position
+                newQueue.splice(currentCardIndex, 1);
+                // Add updated card to the end
+                newQueue.push(updatedCard);
+                setDueCards(newQueue);
+
+                // If we're at end of queue after removal, we're done
+                // But we just pushed a card, so keep at same index (it will show next card)
+                if (currentCardIndex >= newQueue.length) {
+                    // Rare edge case - wrap to start
+                    setCurrentCardIndex(0);
+                }
+                // Otherwise stay at same index (next card slides in)
+            } else {
+                // Card graduated (interval >= 1 day) - remove it from queue
+                const newQueue = dueCards.filter((_, idx) => idx !== currentCardIndex);
+                setDueCards(newQueue);
+
+                if (newQueue.length === 0) {
+                    // All cards graduated - session complete!
+                    setCurrentCardIndex(-1);
+                } else if (currentCardIndex >= newQueue.length) {
+                    // Wrap to start if we were at end
+                    setCurrentCardIndex(0);
+                }
+                // Otherwise stay at same index (next card slides in)
+            }
+        }, 200);
     };
 
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
@@ -173,7 +202,9 @@ export default function StudentFlashcards() {
     // Study Mode UI
     if (studyMode) {
         const currentCard = currentCardIndex >= 0 ? dueCards[currentCardIndex] : null;
-        const progress = dueCards.length > 0 ? ((currentCardIndex + 1) / dueCards.length) * 100 : 100;
+        // Show cards remaining instead of position-based progress
+        const cardsRemaining = dueCards.length;
+        const totalReviewed = sessionStats.again + sessionStats.hard + sessionStats.good + sessionStats.easy;
 
         return (
             <div className="max-w-lg mx-auto py-8 px-4 min-h-[calc(100vh-100px)] flex flex-col">
@@ -183,17 +214,21 @@ export default function StudentFlashcards() {
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Study Session</h2>
                         <p className="text-sm text-slate-500">{selectedDeck === 'All' ? 'All Decks' : selectedDeck}</p>
                     </div>
-                    <button onClick={() => setStudyMode(false)} className="text-slate-400 hover:text-slate-600 text-sm">
-                        Exit
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-slate-500">
+                            {cardsRemaining} cards left
+                        </span>
+                        <button onClick={() => setStudyMode(false)} className="text-slate-400 hover:text-slate-600 text-sm">
+                            Exit
+                        </button>
+                    </div>
                 </div>
 
-                {/* Progress Bar */}
+                {/* Progress Bar - shows reviewed vs remaining */}
                 <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full mb-6 overflow-hidden">
                     <motion.div
                         className="h-full bg-purple-600"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
+                        animate={{ width: totalReviewed > 0 ? `${Math.min(100, (totalReviewed / (totalReviewed + cardsRemaining)) * 100)}%` : '0%' }}
                     />
                 </div>
 
