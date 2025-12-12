@@ -246,15 +246,26 @@ export default function StudentFlashcards() {
                                 {/* Flashcard */}
                                 <div
                                     onClick={() => setIsFlipped(!isFlipped)}
-                                    className="cursor-pointer perspective-1000"
+                                    className="cursor-pointer"
+                                    style={{ perspective: '1000px' }}
                                 >
                                     <motion.div
-                                        className="relative w-full aspect-[4/3] preserve-3d"
+                                        className="relative w-full aspect-[4/3]"
+                                        style={{
+                                            transformStyle: 'preserve-3d',
+                                            transformOrigin: 'center center'
+                                        }}
                                         animate={{ rotateY: isFlipped ? 180 : 0 }}
-                                        transition={{ duration: 0.4 }}
+                                        transition={{ duration: 0.5, ease: 'easeInOut' }}
                                     >
                                         {/* Front */}
-                                        <Card className="absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-8 text-center border-2 border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 shadow-xl">
+                                        <Card
+                                            className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 shadow-xl rounded-xl"
+                                            style={{
+                                                backfaceVisibility: 'hidden',
+                                                WebkitBackfaceVisibility: 'hidden'
+                                            }}
+                                        >
                                             <span className="absolute top-4 left-4 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-600 px-2 py-1 rounded">
                                                 {currentCard.deck_name}
                                             </span>
@@ -264,7 +275,14 @@ export default function StudentFlashcards() {
                                         </Card>
 
                                         {/* Back */}
-                                        <Card className="absolute w-full h-full backface-hidden rotate-y-180 flex flex-col items-center justify-center p-8 text-center border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 shadow-xl">
+                                        <Card
+                                            className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 shadow-xl rounded-xl"
+                                            style={{
+                                                backfaceVisibility: 'hidden',
+                                                WebkitBackfaceVisibility: 'hidden',
+                                                transform: 'rotateY(180deg)'
+                                            }}
+                                        >
                                             <p className="text-xs text-green-600 mb-4">ANSWER</p>
                                             <h3 className="text-lg font-medium text-slate-900 dark:text-white">{currentCard.back}</h3>
                                         </Card>
