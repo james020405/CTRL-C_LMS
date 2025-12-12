@@ -292,146 +292,181 @@ export default function StudentFlashcards() {
                 </div>
 
                 {/* Card Area */}
-                <div className="flex-1 flex items-center justify-center">
-                    <AnimatePresence mode="wait">
+                <div className="flex-1 flex items-center justify-center relative mb-8">
+                    <AnimatePresence mode="popLayout">
                         {currentCard ? (
-                            <motion.div
-                                key={currentCard.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, x: -100 }}
-                                className="w-full"
-                            >
-                                {/* Flashcard with fixed 3D transform */}
-                                <div
-                                    onClick={() => setIsFlipped(!isFlipped)}
-                                    className="cursor-pointer"
-                                    style={{ perspective: '1000px' }}
-                                >
+                            // Render a stack of up to 3 cards
+                            dueCards.slice(currentCardIndex, currentCardIndex + 3).map((card, index) => {
+                                // index 0 is active card, 1 is next, 2 is after that
+                                const isTop = index === 0;
+
+                                return (
                                     <motion.div
-                                        className="relative w-full aspect-[4/3]"
-                                        style={{
-                                            transformStyle: 'preserve-3d',
-                                            transformOrigin: 'center center'
+                                        key={card.id}
+                                        layout // Use layout animation for smooth stacking
+                                        initial={{
+                                            opacity: 0,
+                                            scale: 0.9 - (index * 0.05),
+                                            y: 20 + (index * 15),
+                                            rotate: (Math.random() - 0.5) * 2 // slight random rotation
                                         }}
-                                        animate={{ rotateY: isFlipped ? 180 : 0 }}
-                                        transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                        animate={{
+                                            opacity: 1 - (index * 0.1), // Fade out background cards slightly
+                                            scale: 1 - (index * 0.05), // 1, 0.95, 0.9
+                                            y: index * 10, // 0, 12, 24
+                                            zIndex: 50 - index * 10,
+                                            rotate: isTop ? 0 : (index % 2 === 0 ? 1 : -1) // subtle rotation for stack effect
+                                        }}
+                                        exit={{
+                                            opacity: 0,
+                                            x: -300,
+                                            rotate: -15,
+                                            transition: { duration: 0.2 }
+                                        }}
+                                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                        className={`w-full absolute inset-0 m-auto h-fit px-4 ${!isTop ? 'pointer-events-none' : ''}`}
                                     >
-                                        {/* Front */}
-                                        <Card
-                                            className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 shadow-xl rounded-xl"
-                                            style={{
-                                                backfaceVisibility: 'hidden',
-                                                WebkitBackfaceVisibility: 'hidden'
-                                            }}
+                                        {/* Content only interactive if top card */}
+                                        <div
+                                            onClick={() => isTop && setIsFlipped(!isFlipped)}
+                                            className={`cursor-pointer w-full relative ${!isTop ? 'brightness-95' : ''}`} // Darken non-top cards
+                                            style={{ perspective: '1000px' }}
                                         >
-                                            <span className="absolute top-4 left-4 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-600 px-2 py-1 rounded">
-                                                {currentCard.deck_name}
-                                            </span>
-                                            <p className="text-xs text-slate-400 mb-4">QUESTION</p>
-                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{currentCard.front}</h3>
-                                            <p className="absolute bottom-4 text-xs text-slate-400">Tap to reveal answer</p>
-                                        </Card>
+                                            <motion.div
+                                                className="relative w-full aspect-[4/3] max-h-[400px]"
+                                                style={{
+                                                    transformStyle: 'preserve-3d',
+                                                    transformOrigin: 'center center'
+                                                }}
+                                                animate={{ rotateY: isTop && isFlipped ? 180 : 0 }}
+                                                transition={{ duration: 0.4, ease: 'easeOut' }}
+                                            >
+                                                {/* Front */}
+                                                <Card
+                                                    className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl rounded-2xl"
+                                                    style={{
+                                                        backfaceVisibility: 'hidden',
+                                                        WebkitBackfaceVisibility: 'hidden'
+                                                    }}
+                                                >
+                                                    <span className="absolute top-4 left-4 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-500 px-2 py-1 rounded">
+                                                        {card.deck_name}
+                                                    </span>
+                                                    <p className="text-xs text-slate-400 mb-4 font-semibold tracking-wider">QUESTION</p>
+                                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-relaxed select-none">
+                                                        {card.front}
+                                                    </h3>
+                                                    {isTop && <p className="absolute bottom-4 text-xs text-slate-300 dark:text-slate-600 animate-pulse">Tap to flip</p>}
+                                                </Card>
 
-                                        {/* Back */}
-                                        <Card
-                                            className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 shadow-xl rounded-xl"
-                                            style={{
-                                                backfaceVisibility: 'hidden',
-                                                WebkitBackfaceVisibility: 'hidden',
-                                                transform: 'rotateY(180deg)'
-                                            }}
-                                        >
-                                            <p className="text-xs text-green-600 mb-4">ANSWER</p>
-                                            <h3 className="text-lg font-medium text-slate-900 dark:text-white">{currentCard.back}</h3>
-                                        </Card>
+                                                {/* Back */}
+                                                <Card
+                                                    className="absolute w-full h-full flex flex-col items-center justify-center p-8 text-center border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10 shadow-xl rounded-2xl"
+                                                    style={{
+                                                        backfaceVisibility: 'hidden',
+                                                        WebkitBackfaceVisibility: 'hidden',
+                                                        transform: 'rotateY(180deg)'
+                                                    }}
+                                                >
+                                                    <p className="text-xs text-purple-600 dark:text-purple-400 mb-4 font-semibold tracking-wider">ANSWER</p>
+                                                    <h3 className="text-lg font-medium text-slate-900 dark:text-white leading-relaxed select-none">
+                                                        {card.back}
+                                                    </h3>
+                                                </Card>
+                                            </motion.div>
+                                        </div>
                                     </motion.div>
-                                </div>
-
-                                {/* Rating Buttons - Show after flip */}
-                                <AnimatePresence>
-                                    {isFlipped && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="mt-6"
-                                        >
-                                            <p className="text-center text-sm text-slate-500 mb-3">How well did you know this?</p>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {(() => {
-                                                    const previews = getIntervalPreviews(currentCard);
-                                                    return (
-                                                        <>
-                                                            <RatingButton
-                                                                onClick={() => handleRating(RATING.AGAIN)}
-                                                                label="Again"
-                                                                interval={previews.again}
-                                                                color="red"
-                                                                icon={<RotateCcw size={18} />}
-                                                            />
-                                                            <RatingButton
-                                                                onClick={() => handleRating(RATING.HARD)}
-                                                                label="Hard"
-                                                                interval={previews.hard}
-                                                                color="orange"
-                                                                icon={<ThumbsDown size={18} />}
-                                                            />
-                                                            <RatingButton
-                                                                onClick={() => handleRating(RATING.GOOD)}
-                                                                label="Good"
-                                                                interval={previews.good}
-                                                                color="green"
-                                                                icon={<ThumbsUp size={18} />}
-                                                            />
-                                                            <RatingButton
-                                                                onClick={() => handleRating(RATING.EASY)}
-                                                                label="Easy"
-                                                                interval={previews.easy}
-                                                                color="blue"
-                                                                icon={<Zap size={18} />}
-                                                            />
-                                                        </>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
+                                );
+                            })
                         ) : (
                             // Session Complete
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border w-full"
+                                className="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md mx-auto relative z-50"
                             >
-                                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                                </div>
                                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Session Complete!</h3>
-                                <p className="text-slate-500 mb-6">You reviewed {dueCards.length + (sessionStats.again + sessionStats.hard + sessionStats.good + sessionStats.easy)} cards</p>
+                                <p className="text-slate-500 mb-8">You reviewed {dueCards.length + (sessionStats.again + sessionStats.hard + sessionStats.good + sessionStats.easy)} cards</p>
 
                                 {/* Stats */}
-                                <div className="grid grid-cols-4 gap-2 mb-6 text-center">
-                                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
-                                        <div className="text-2xl font-bold text-red-600">{sessionStats.again}</div>
-                                        <div className="text-xs text-red-500">Again</div>
+                                <div className="grid grid-cols-4 gap-3 mb-8 text-center">
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <div className="text-xl font-bold text-red-500">{sessionStats.again}</div>
+                                        <div className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Again</div>
                                     </div>
-                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
-                                        <div className="text-2xl font-bold text-orange-600">{sessionStats.hard}</div>
-                                        <div className="text-xs text-orange-500">Hard</div>
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <div className="text-xl font-bold text-orange-500">{sessionStats.hard}</div>
+                                        <div className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Hard</div>
                                     </div>
-                                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                                        <div className="text-2xl font-bold text-green-600">{sessionStats.good}</div>
-                                        <div className="text-xs text-green-500">Good</div>
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <div className="text-xl font-bold text-green-500">{sessionStats.good}</div>
+                                        <div className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Good</div>
                                     </div>
-                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                        <div className="text-2xl font-bold text-blue-600">{sessionStats.easy}</div>
-                                        <div className="text-xs text-blue-500">Easy</div>
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <div className="text-xl font-bold text-blue-500">{sessionStats.easy}</div>
+                                        <div className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Easy</div>
                                     </div>
                                 </div>
 
-                                <Button onClick={() => setStudyMode(false)} className="w-full">
+                                <Button onClick={() => setStudyMode(false)} className="w-full bg-slate-900 text-white hover:bg-slate-800">
                                     Back to Dashboard
                                 </Button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Fixed Action Area - Prevents overlap */}
+                <div className="h-32 flex flex-col justify-end pb-4">
+                    <AnimatePresence>
+                        {isFlipped && currentCard && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="w-full"
+                            >
+                                <p className="text-center text-xs text-slate-400 mb-2 uppercase tracking-wide font-medium">How well did you know this?</p>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {(() => {
+                                        const previews = getIntervalPreviews(currentCard);
+                                        return (
+                                            <>
+                                                <RatingButton
+                                                    onClick={() => handleRating(RATING.AGAIN)}
+                                                    label="Again"
+                                                    interval={previews.again}
+                                                    color="red"
+                                                    icon={<RotateCcw size={16} />}
+                                                />
+                                                <RatingButton
+                                                    onClick={() => handleRating(RATING.HARD)}
+                                                    label="Hard"
+                                                    interval={previews.hard}
+                                                    color="orange"
+                                                    icon={<ThumbsDown size={16} />}
+                                                />
+                                                <RatingButton
+                                                    onClick={() => handleRating(RATING.GOOD)}
+                                                    label="Good"
+                                                    interval={previews.good}
+                                                    color="green"
+                                                    icon={<ThumbsUp size={16} />}
+                                                />
+                                                <RatingButton
+                                                    onClick={() => handleRating(RATING.EASY)}
+                                                    label="Easy"
+                                                    interval={previews.easy}
+                                                    color="blue"
+                                                    icon={<Zap size={16} />}
+                                                />
+                                            </>
+                                        );
+                                    })()}
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
