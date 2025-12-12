@@ -680,12 +680,6 @@ export const generateCodeChallenge = async (difficulty = 'easy', mode = 'code_to
         return getCodeChallenge(difficulty, mode);
     }
 
-    const modeDescriptions = {
-        code_to_meaning: 'Given an OBD code, identify what it means',
-        symptoms_to_code: 'Given symptoms, identify the likely code',
-        code_to_action: 'Given a code, identify the correct diagnostic action'
-    };
-
     const difficultyGuides = {
         easy: 'Use common, well-known P0 codes like P0300-P0306 (misfires), P0171/P0174 (lean), P0420 (catalyst)',
         medium: 'Use sensor codes like P0100-range (MAF), P0130-range (O2 sensors), P0400-range (EGR)',
@@ -694,6 +688,62 @@ export const generateCodeChallenge = async (difficulty = 'easy', mode = 'code_to
 
     const randomSeed = Math.floor(Math.random() * 10000);
 
+    // Mode-specific prompts to avoid revealing the answer
+    const modePrompts = {
+        code_to_meaning: `Create a question where the student sees an OBD code and must identify what it means.
+The code should be displayed, and options should be different MEANINGS (not codes).
+
+Return ONLY this JSON (no markdown):
+{
+    "code": "P0XXX",
+    "question": "A vehicle presents with a steady illuminated check engine light and diagnostic trouble code P0XXX. What is the FIRST appropriate diagnostic step?",
+    "options": [
+        {"id": "option1", "text": "The correct meaning of the code", "isCorrect": true},
+        {"id": "option2", "text": "Wrong meaning (different code's meaning)", "isCorrect": false},
+        {"id": "option3", "text": "Wrong meaning (different code's meaning)", "isCorrect": false},
+        {"id": "option4", "text": "Wrong meaning (different code's meaning)", "isCorrect": false}
+    ],
+    "explanation": "Why the correct answer is right and what the code means",
+    "correctAction": "What a technician should do when seeing this code",
+    "category": "Misfire/Fuel System/Emissions/etc"
+}`,
+        symptoms_to_code: `Create a question where the student sees SYMPTOMS and must identify which OBD CODE would be present.
+DO NOT include a "code" field in your response - the student must figure out the code from symptoms.
+The question should describe symptoms, and each option should be a different OBD code WITH its meaning.
+
+Return ONLY this JSON (no markdown):
+{
+    "question": "A vehicle is experiencing [specific symptoms like rough idle, check engine light, etc.]. During a visual inspection, [additional findings]. A scan tool reveals [hint without giving away the code]. Which code is most likely present?",
+    "options": [
+        {"id": "option1", "text": "P0XXX - Correct code meaning", "isCorrect": true},
+        {"id": "option2", "text": "P0YYY - Wrong but related code meaning", "isCorrect": false},
+        {"id": "option3", "text": "P0ZZZ - Wrong but plausible code meaning", "isCorrect": false},
+        {"id": "option4", "text": "P0WWW - Wrong but plausible code meaning", "isCorrect": false}
+    ],
+    "explanation": "Why these symptoms point to this specific code",
+    "correctAction": "What a technician should do when seeing this code",
+    "category": "Misfire/Fuel System/Emissions/etc"
+}`,
+        code_to_action: `Create a question where the student sees an OBD code and its meaning, then must identify the correct diagnostic ACTION.
+The code and meaning should be displayed, and options should be different ACTIONS.
+
+Return ONLY this JSON (no markdown):
+{
+    "code": "P0XXX",
+    "meaning": "What this code means",
+    "question": "Code P0XXX (meaning) is present. What is the FIRST appropriate diagnostic step?",
+    "options": [
+        {"id": "option1", "text": "The correct diagnostic action", "isCorrect": true},
+        {"id": "option2", "text": "Wrong action that wastes time/money", "isCorrect": false},
+        {"id": "option3", "text": "Wrong action that doesn't address root cause", "isCorrect": false},
+        {"id": "option4", "text": "Wrong action that's unrelated", "isCorrect": false}
+    ],
+    "explanation": "Why this diagnostic approach is correct",
+    "correctAction": "The correct diagnostic action in detail",
+    "category": "Misfire/Fuel System/Emissions/etc"
+}`
+    };
+
     try {
         checkRateLimit();
         const prompt = `You are an automotive instructor creating an OBD-II code quiz.
@@ -701,32 +751,19 @@ export const generateCodeChallenge = async (difficulty = 'easy', mode = 'code_to
 DIFFICULTY: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
 
-MODE: ${mode}
-${modeDescriptions[mode]}
-
 Random seed for variety: ${randomSeed}
 
-Create a multiple choice question with 4 options (1 correct, 3 wrong).
-
-Return ONLY this JSON (no markdown):
-{
-    "code": "P0XXX",
-    "question": "The question text based on mode",
-    "options": [
-        {"id": "option1", "text": "Correct answer", "isCorrect": true},
-        {"id": "option2", "text": "Wrong but plausible answer", "isCorrect": false},
-        {"id": "option3", "text": "Wrong but plausible answer", "isCorrect": false},
-        {"id": "option4", "text": "Wrong but plausible answer", "isCorrect": false}
-    ],
-    "explanation": "Why the correct answer is right and what the code means",
-    "correctAction": "What a technician should do when seeing this code",
-    "category": "Misfire/Fuel System/Emissions/etc"
-}`;
+${modePrompts[mode]}`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text().replace(/```json|```/g, '').trim();
         const challenge = JSON.parse(text);
+
+        // For symptoms_to_code mode, ensure code field is removed (don't show answer)
+        if (mode === 'symptoms_to_code') {
+            delete challenge.code;
+        }
 
         // Shuffle options so correct isn't always first
         if (challenge.options && challenge.options.length > 0) {

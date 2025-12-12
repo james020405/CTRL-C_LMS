@@ -329,8 +329,9 @@ export const getCodeChallenge = (difficulty = 'easy', mode = 'code_to_meaning') 
             };
 
         case 'symptoms_to_code':
+            // NOTE: Don't include 'code' field here - the student must figure it out from symptoms
             return {
-                question: `A customer reports: "${selectedCode.symptoms.slice(0, 2).join(', ')}". Which code would you expect?`,
+                question: `A vehicle is experiencing a rough idle and the check engine light is illuminated. During a visual inspection, no obvious issues are found. A scan tool reveals a single cylinder misfire. Which code is most likely present?`,
                 symptoms: selectedCode.symptoms,
                 options: shuffleArray([
                     { id: 'correct', text: `${selectedCode.code} - ${selectedCode.meaning}`, isCorrect: true },
