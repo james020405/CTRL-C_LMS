@@ -5,6 +5,8 @@ import logger from './logger';
 
 // Initialize Gemini with multiple model fallbacks
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+
 let genAI = null;
 let model = null;
 let geminiAvailable = false;
@@ -24,6 +26,46 @@ if (API_KEY) {
     }
 } else {
     console.warn("⚠️ VITE_GEMINI_API_KEY not set - using fallback scenarios");
+}
+
+// OpenRouter fallback (uses OpenAI-compatible API format)
+const openRouterAvailable = !!OPENROUTER_API_KEY;
+if (openRouterAvailable) {
+    console.log("🔑 OpenRouter API key found (Kimi K2 fallback available)");
+}
+
+/**
+ * Call OpenRouter API as fallback when Gemini fails
+ * @param {string} prompt - The prompt to send
+ * @returns {Promise<string>} - The generated text response
+ */
+async function callOpenRouter(prompt) {
+    if (!OPENROUTER_API_KEY) {
+        throw new Error("OpenRouter API key not configured");
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Ctrl C Academy"
+        },
+        body: JSON.stringify({
+            model: "moonshotai/kimi-k2:free",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "";
 }
 
 // Helper to check if Gemini is available
@@ -675,10 +717,6 @@ export const evaluateCrossSystemDiagnosis = (caseData, selectedOptionId) => {
  * @returns {Promise<Object>} - Scenario object with failure, effects, options
  */
 export const generateChainReactionScenario = async (difficulty = 'easy') => {
-    if (!model) {
-        return getChainReactionScenario(difficulty);
-    }
-
     const difficultyGuides = {
         easy: 'Simple 2-system chain (A fails → B affected). Use common issues like thermostat, battery, serpentine belt.',
         medium: 'Medium 3-system chain (A fails → B affected → C affected). Use sensor failures, vacuum leaks, fuel pump issues.',
@@ -689,9 +727,7 @@ export const generateChainReactionScenario = async (difficulty = 'easy') => {
     const primarySystem = automotiveSystems[Math.floor(Math.random() * automotiveSystems.length)];
     const randomSeed = Math.floor(Math.random() * 10000);
 
-    try {
-        checkRateLimit();
-        const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz about how failures cascade through interconnected vehicle systems.
+    const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz about how failures cascade through interconnected vehicle systems.
 
 DIFFICULTY: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
@@ -716,10 +752,10 @@ Return ONLY this JSON (no markdown):
     "systems": ["List", "Of", "Affected", "Systems"]
 }`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, '').trim();
-        const scenario = JSON.parse(text);
+    // Helper to parse AI response and format scenario
+    const parseScenario = (text) => {
+        const cleanText = text.replace(/```json|```/g, '').trim();
+        const scenario = JSON.parse(cleanText);
 
         // Create options array with shuffled order
         const options = [
@@ -741,9 +777,35 @@ Return ONLY this JSON (no markdown):
             options,
             id: `ai-${Date.now()}`
         };
-    } catch (error) {
-        console.error("Chain Reaction Generation Error:", error);
-        return getChainReactionScenario(difficulty);
+    };
+
+    // Try Gemini first
+    if (model) {
+        try {
+            checkRateLimit();
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            console.log("✅ Chain Reaction generated via Gemini");
+            return parseScenario(text);
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
     }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Chain Reaction generated via OpenRouter (Kimi K2)");
+            return parseScenario(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
+        }
+    }
+
+    // Fall back to static scenarios
+    console.log("📋 Using fallback scenario data");
+    return getChainReactionScenario(difficulty);
 };
 
