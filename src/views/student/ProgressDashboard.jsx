@@ -18,10 +18,10 @@ const GAME_ICONS = {
 };
 
 const GAME_LABELS = {
-    fault_roulette: { name: 'Fault Roulette', color: 'bg-red-500' },
-    service_writer: { name: 'Service Writer', color: 'bg-blue-500' },
-    cross_system: { name: 'Cross-System', color: 'bg-purple-500' },
-    tool_selection: { name: 'Tool Selection', color: 'bg-orange-500' }
+    fault_roulette: { name: 'Fault Roulette', color: 'text-red-600 bg-red-100 dark:bg-red-900/20' },
+    service_writer: { name: 'Service Writer', color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20' },
+    cross_system: { name: 'Cross-System', color: 'text-purple-600 bg-purple-100 dark:bg-purple-900/20' },
+    tool_selection: { name: 'Tool Selection', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' }
 };
 
 // Stat card component
@@ -36,7 +36,8 @@ function StatCard({ icon: Icon, label, value, subtext, color = 'text-blue-600' }
                         <p className="text-xs text-slate-400 mt-1">{subtext}</p>
                     )}
                 </div>
-                <div className={`p-3 rounded-xl ${color.replace('text-', 'bg-').replace('-600', '-100')} dark:bg-opacity-20`}>
+                {/* Fixed background to be more subtle, using base slate color instead of intense dynamic colors */}
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                     <Icon className={color} size={24} />
                 </div>
             </div>
@@ -154,8 +155,8 @@ function GameBreakdownRow({ gameType, stats }) {
 
     return (
         <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-            <div className={`w-10 h-10 ${game.color} rounded-xl flex items-center justify-center text-white`}>
-                <GameIcon size={20} />
+            <div className={`w-10 h-10 ${game.color} rounded-xl flex items-center justify-center`}>
+                <GameIcon size={20} className="currentColor" />
             </div>
             <div className="flex-1">
                 <p className="font-medium text-slate-900 dark:text-white">{game.name}</p>

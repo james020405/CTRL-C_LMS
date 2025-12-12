@@ -73,6 +73,11 @@ export default function Register() {
             );
             if (authError) throw authError;
 
+            // Check if user already exists (Supabase returns user with empty identities array if exists)
+            if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+                throw new Error('This email is already registered. Please sign in instead.');
+            }
+
             // 2. Create public profile entry (for Admin Dashboard listing)
             if (authData.user) {
                 const { error: profileError } = await supabase

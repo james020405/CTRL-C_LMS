@@ -5,12 +5,14 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useToast } from '../../components/ui/Toast';
 import { calculateNextReview, getIntervalPreviews, RATING, formatInterval } from '../../lib/spacedRepetition';
 import { Plus, Trash2, RotateCw, CheckCircle, BrainCircuit, Loader2, Layers, FolderPlus, RotateCcw, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudentFlashcards() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [studyMode, setStudyMode] = useState(false);
@@ -21,6 +23,8 @@ export default function StudentFlashcards() {
 
     // Dialog State
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [cardToDelete, setCardToDelete] = useState(null);
 
     // Decks State
     const [decks, setDecks] = useState([]);
@@ -57,6 +61,7 @@ export default function StudentFlashcards() {
             setDecks(uniqueDecks);
         } catch (error) {
             console.error('Error fetching cards:', error);
+            toast.error('Failed to load flashcards');
         } finally {
             setLoading(false);
         }
@@ -72,12 +77,12 @@ export default function StudentFlashcards() {
 
         // Validation
         if (!front || !back || !deck) {
-            alert('Please fill in all fields.');
+            toast.error('Please fill in all fields.');
             return;
         }
 
         if (front.length < 3 || back.length < 3) {
-            alert('Question and answer must be at least 3 characters.');
+            toast.error('Question and answer must be at least 3 characters.');
             return;
         }
 
@@ -109,21 +114,32 @@ export default function StudentFlashcards() {
             // Don't reset deck if user might add more to same deck, but reset custom toggle if desired?
             // Let's keep deck selected for convenience
             setShowForm(false);
+            toast.success('Flashcard created!');
         } catch (error) {
-            alert('Failed to create card. Please try again.');
+            toast.error('Failed to create card. Please try again.');
         } finally {
             setCreating(false);
         }
     };
 
-    const handleDeleteCard = async (id) => {
-        if (!window.confirm('Delete this flashcard?')) return;
+    const handleDeleteClick = (id) => {
+        setCardToDelete(id);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteCard = async () => {
+        if (!cardToDelete) return;
         try {
-            const { error } = await supabase.from('student_flashcards').delete().eq('id', id);
+            const { error } = await supabase.from('student_flashcards').delete().eq('id', cardToDelete);
             if (error) throw error;
-            setCards(cards.filter(c => c.id !== id));
+            setCards(cards.filter(c => c.id !== cardToDelete));
+            toast.success('Flashcard deleted');
         } catch (error) {
             console.error('Error deleting card:', error);
+            toast.error('Failed to delete card');
+        } finally {
+            setShowDeleteConfirm(false);
+            setCardToDelete(null);
         }
     };
 
@@ -152,11 +168,10 @@ export default function StudentFlashcards() {
 
             // Update local state
             setCards(cards.map(c => ids.includes(c.id) ? { ...c, ...updates } : c));
-            // Success feedback could be a toast, but keeping it simple for now or adding a Quick success message?
-            // alert("Deck reset successfully!"); // Removing alert as requested for "in-page" feel
+            toast.success("Deck progress reset successfully");
         } catch (error) {
             console.error('Error resetting deck:', error);
-            alert("Failed to reset deck.");
+            toast.error("Failed to reset deck.");
         } finally {
             setShowResetConfirm(false);
         }
@@ -167,7 +182,7 @@ export default function StudentFlashcards() {
         const due = cardsToStudy.filter(card => new Date(card.next_review_date) <= new Date());
 
         if (due.length === 0) {
-            alert("No cards due for review in this deck!");
+            toast.info("No cards due for review in this deck!");
             return;
         }
 
@@ -583,7 +598,7 @@ export default function StudentFlashcards() {
                                     {card.deck_name}
                                 </span>
                                 <button
-                                    onClick={() => handleDeleteCard(card.id)}
+                                    onClick={() => handleDeleteClick(card.id)}
                                     className="text-slate-400 hover:text-red-500 transition-colors"
                                 >
                                     <Trash2 size={14} />
@@ -625,6 +640,17 @@ export default function StudentFlashcards() {
                 confirmText="Yes, Reset All"
                 cancelText="Cancel"
                 variant="warning"
+            />
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={confirmDeleteCard}
+                title="Delete Flashcard?"
+                description="Are you sure you want to delete this flashcard? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
             />
         </div>
     );

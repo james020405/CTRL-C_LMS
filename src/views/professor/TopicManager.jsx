@@ -3,11 +3,19 @@ import { supabase } from '../../lib/supabase';
 import { Plus, FileText, Video, Image as ImageIcon, Link as LinkIcon, Trash2, X, Loader2, Upload } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useToast } from '../../components/ui/Toast';
 
 export default function TopicManager({ course, onBack }) {
+    const { toast } = useToast();
     const [topics, setTopics] = useState([]);
     const [newTopicTitle, setNewTopicTitle] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Delete Confirmation State
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteItem, setDeleteItem] = useState(null);
+    const [deleteType, setDeleteType] = useState(null); // 'TOPIC' or 'MATERIAL'
 
     // Material modal state
     const [showMaterialModal, setShowMaterialModal] = useState(false);
@@ -40,6 +48,7 @@ export default function TopicManager({ course, onBack }) {
             setTopics(data || []);
         } catch (error) {
             console.error('Error fetching topics:', error);
+            toast.error('Failed to load topics');
         } finally {
             setLoading(false);
         }
@@ -56,31 +65,68 @@ export default function TopicManager({ course, onBack }) {
                 .select()
                 .single();
 
-            if (error) {
-                console.error('Supabase error:', error);
-                throw error;
-            }
+            if (error) throw error;
 
             setTopics([...topics, { ...data, materials: [] }]);
             setNewTopicTitle('');
+            toast.success('Topic created');
         } catch (error) {
             console.error('Error creating topic:', error);
-            const errorMessage = error?.message || error?.details || 'Unknown error';
-            alert(`Failed to create topic: ${errorMessage}\n\nMake sure you've run the SQL schema in Supabase.`);
+            toast.error('Failed to create topic');
         }
     };
 
-    const handleDeleteTopic = async (topicId, topicTitle) => {
-        if (!window.confirm(`Delete "${topicTitle}" and all its materials?`)) return;
+    const handleDeleteTopicClick = (topic) => {
+        setDeleteItem(topic);
+        setDeleteType('TOPIC');
+        setDeleteConfirmOpen(true);
+    };
+
+    const handleDeleteMaterialClick = (topicId, material) => {
+        setDeleteItem({ ...material, topicId }); // Inject topicId for deletion logic
+        setDeleteType('MATERIAL');
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteItem || !deleteType) return;
 
         try {
-            await supabase.from('materials').delete().eq('topic_id', topicId);
-            const { error } = await supabase.from('topics').delete().eq('id', topicId);
-            if (error) throw error;
-            setTopics(topics.filter(t => t.id !== topicId));
+            if (deleteType === 'TOPIC') {
+                // Delete materials first
+                await supabase.from('materials').delete().eq('topic_id', deleteItem.id);
+                const { error } = await supabase.from('topics').delete().eq('id', deleteItem.id);
+
+                if (error) throw error;
+
+                setTopics(topics.filter(t => t.id !== deleteItem.id));
+                toast.success('Topic deleted');
+            } else if (deleteType === 'MATERIAL') {
+                // Material deletion
+                if (deleteItem.url?.includes('supabase')) {
+                    const path = deleteItem.url.split('/materials/')[1];
+                    if (path) {
+                        await supabase.storage.from('materials').remove([path]);
+                    }
+                }
+
+                const { error } = await supabase.from('materials').delete().eq('id', deleteItem.id);
+                if (error) throw error;
+
+                setTopics(topics.map(t =>
+                    t.id === deleteItem.topicId
+                        ? { ...t, materials: t.materials.filter(m => m.id !== deleteItem.id) }
+                        : t
+                ));
+                toast.success('Material deleted');
+            }
         } catch (error) {
-            console.error('Error deleting topic:', error);
-            alert(`Failed to delete topic: ${error.message}`);
+            console.error(`Error deleting ${deleteType.toLowerCase()}:`, error);
+            toast.error(`Failed to delete ${deleteType.toLowerCase()}`);
+        } finally {
+            setDeleteConfirmOpen(false);
+            setDeleteItem(null);
+            setDeleteType(null);
         }
     };
 
@@ -136,9 +182,8 @@ export default function TopicManager({ course, onBack }) {
                     });
 
                 if (uploadError) {
-                    // Check if bucket doesn't exist
                     if (uploadError.message.includes('bucket') || uploadError.message.includes('Bucket')) {
-                        throw new Error('Storage bucket "materials" does not exist. Please create it in Supabase Storage.');
+                        throw new Error('Storage bucket "materials" does not exist.');
                     }
                     throw uploadError;
                 }
@@ -177,35 +222,12 @@ export default function TopicManager({ course, onBack }) {
                     : t
             ));
             setShowMaterialModal(false);
+            toast.success('Material added');
         } catch (error) {
             console.error('Error adding material:', error);
-            alert(`Failed to add material: ${error.message}`);
+            toast.error(`Failed to add material: ${error.message}`);
         } finally {
             setSavingMaterial(false);
-        }
-    };
-
-    const handleDeleteMaterial = async (topicId, materialId, materialUrl) => {
-        try {
-            // Try to delete from storage if it's a stored file
-            if (materialUrl?.includes('supabase')) {
-                const path = materialUrl.split('/materials/')[1];
-                if (path) {
-                    await supabase.storage.from('materials').remove([path]);
-                }
-            }
-
-            const { error } = await supabase.from('materials').delete().eq('id', materialId);
-            if (error) throw error;
-
-            setTopics(topics.map(t =>
-                t.id === topicId
-                    ? { ...t, materials: t.materials.filter(m => m.id !== materialId) }
-                    : t
-            ));
-        } catch (error) {
-            console.error('Error deleting material:', error);
-            alert(`Failed to delete material: ${error.message}`);
         }
     };
 
@@ -271,7 +293,7 @@ export default function TopicManager({ course, onBack }) {
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        onClick={() => handleDeleteTopic(topic.id, topic.title)}
+                                        onClick={() => handleDeleteTopicClick(topic)}
                                         className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20 h-8 px-2"
                                     >
                                         <Trash2 size={14} />
@@ -305,7 +327,7 @@ export default function TopicManager({ course, onBack }) {
                                             </div>
                                             <Button
                                                 variant="secondary"
-                                                onClick={() => handleDeleteMaterial(topic.id, material.id, material.url)}
+                                                onClick={() => handleDeleteMaterialClick(topic.id, material)}
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 h-auto flex-shrink-0"
                                             >
                                                 <Trash2 size={16} />
@@ -340,8 +362,8 @@ export default function TopicManager({ course, onBack }) {
                                     type="button"
                                     onClick={() => setUploadMode('url')}
                                     className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${uploadMode === 'url'
-                                            ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                            : 'text-slate-600 dark:text-slate-400'
+                                        ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                        : 'text-slate-600 dark:text-slate-400'
                                         }`}
                                 >
                                     <LinkIcon size={14} className="inline mr-1" />
@@ -351,8 +373,8 @@ export default function TopicManager({ course, onBack }) {
                                     type="button"
                                     onClick={() => setUploadMode('file')}
                                     className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${uploadMode === 'file'
-                                            ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
-                                            : 'text-slate-600 dark:text-slate-400'
+                                        ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm'
+                                        : 'text-slate-600 dark:text-slate-400'
                                         }`}
                                 >
                                     <Upload size={14} className="inline mr-1" />
@@ -475,6 +497,21 @@ export default function TopicManager({ course, onBack }) {
                     </Card>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={confirmDelete}
+                title={deleteType === 'TOPIC' ? "Delete Topic?" : "Delete Material?"}
+                description={
+                    deleteType === 'TOPIC'
+                        ? `Are you sure you want to delete "${deleteItem?.title}"? This will also remove all materials inside it.`
+                        : `Are you sure you want to delete "${deleteItem?.title}"?`
+                }
+                confirmText={deleteType === 'TOPIC' ? "Delete Topic" : "Delete Material"}
+                cancelText="Cancel"
+                variant="danger"
+            />
         </div>
     );
 }

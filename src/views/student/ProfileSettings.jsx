@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
@@ -14,6 +16,7 @@ import {
 export default function ProfileSettings() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const { toast } = useToast();
 
     // Profile State
     const [profile, setProfile] = useState(null);
@@ -27,6 +30,10 @@ export default function ProfileSettings() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
 
+    // Delete Account State
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+
     // Stats State
     const [stats, setStats] = useState({
         flashcardsCreated: 0,
@@ -34,10 +41,6 @@ export default function ProfileSettings() {
         totalGameScore: 0,
         gamesPlayed: 0
     });
-
-    // Messages
-    const [success, setSuccess] = useState('');
-    const [error, setError] = useState('');
 
     useEffect(() => {
         if (user?.id) {
@@ -65,6 +68,7 @@ export default function ProfileSettings() {
             }
         } catch (err) {
             console.error('Error loading profile:', err);
+            toast.error('Failed to load profile');
         } finally {
             setLoading(false);
         }
@@ -103,9 +107,6 @@ export default function ProfileSettings() {
 
     const handleSaveProfile = async () => {
         setSaving(true);
-        setError('');
-        setSuccess('');
-
         try {
             // Update profiles table
             const { error: profileError } = await supabase
@@ -126,10 +127,9 @@ export default function ProfileSettings() {
 
             if (authError) throw authError;
 
-            setSuccess('Profile updated successfully!');
-            setTimeout(() => setSuccess(''), 3000);
+            toast.success('Profile updated successfully!');
         } catch (err) {
-            setError(err.message);
+            toast.error(err.message);
         } finally {
             setSaving(false);
         }
@@ -137,27 +137,25 @@ export default function ProfileSettings() {
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
 
         // Validate current password is provided
         if (!currentPassword) {
-            setError('Please enter your current password.');
+            toast.error('Please enter your current password.');
             return;
         }
 
         if (newPassword.length < 6) {
-            setError('New password must be at least 6 characters.');
+            toast.error('New password must be at least 6 characters.');
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            setError('Passwords do not match.');
+            toast.error('Passwords do not match.');
             return;
         }
 
         if (currentPassword === newPassword) {
-            setError('New password must be different from current password.');
+            toast.error('New password must be different from current password.');
             return;
         }
 
@@ -181,31 +179,25 @@ export default function ProfileSettings() {
 
             if (error) throw error;
 
-            setSuccess('Password changed successfully!');
+            toast.success('Password changed successfully!');
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            setError(err.message);
+            toast.error(err.message);
         } finally {
             setChangingPassword(false);
         }
     };
 
-    const handleDeleteAccount = async () => {
-        const confirmed = window.confirm(
-            'Are you sure you want to delete your account? This action cannot be undone.'
-        );
+    const handleDeleteClick = () => {
+        setDeleteConfirmationText('');
+        setDeleteConfirmOpen(true);
+    };
 
-        if (!confirmed) return;
-
-        const doubleConfirm = window.prompt(
-            'Type "DELETE" to confirm account deletion:'
-        );
-
-        if (doubleConfirm !== 'DELETE') {
-            setError('Account deletion cancelled.');
+    const confirmDeleteAccount = async () => {
+        if (deleteConfirmationText !== 'DELETE') {
+            toast.error('Please type "DELETE" to confirm.');
             return;
         }
 
@@ -219,8 +211,10 @@ export default function ProfileSettings() {
             // Sign out
             await signOut();
             navigate('/');
+            toast.success('Account deleted successfully');
         } catch (err) {
-            setError('Failed to delete account. Please contact support.');
+            toast.error('Failed to delete account. Please contact support.');
+            setDeleteConfirmOpen(false);
         }
     };
 
@@ -252,20 +246,6 @@ export default function ProfileSettings() {
                     Manage your account and view your progress
                 </p>
             </div>
-
-            {/* Messages */}
-            {success && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-xl flex items-center gap-2">
-                    <CheckCircle size={18} />
-                    {success}
-                </div>
-            )}
-            {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl flex items-center gap-2">
-                    <AlertCircle size={18} />
-                    {error}
-                </div>
-            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column - Profile Info */}
@@ -339,18 +319,6 @@ export default function ProfileSettings() {
                             Change Password
                         </h2>
 
-                        {/* Error/Success Messages */}
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
-                                {error}
-                            </div>
-                        )}
-                        {success && (
-                            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm">
-                                {success}
-                            </div>
-                        )}
-
                         <form onSubmit={handleChangePassword} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -418,7 +386,7 @@ export default function ProfileSettings() {
                             Once you delete your account, there is no going back. Please be certain.
                         </p>
                         <Button
-                            onClick={handleDeleteAccount}
+                            onClick={handleDeleteClick}
                             variant="outline"
                             className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         >
@@ -485,6 +453,29 @@ export default function ProfileSettings() {
                     </Card>
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={confirmDeleteAccount}
+                title="Delete Account?"
+                description="This action will permanently delete your account and all associated data (flashcards, progress, etc). This cannot be undone."
+                confirmText="Delete Account"
+                cancelText="Cancel"
+                variant="danger"
+            >
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Type "DELETE" to confirm
+                    </label>
+                    <Input
+                        value={deleteConfirmationText}
+                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                        placeholder="DELETE"
+                        className="w-full"
+                    />
+                </div>
+            </ConfirmDialog>
         </div>
     );
 }

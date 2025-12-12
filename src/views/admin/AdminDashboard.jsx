@@ -3,12 +3,19 @@ import { supabase } from '../../lib/supabase';
 import { Header } from '../../components/Header';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useToast } from '../../components/ui/Toast';
 import { CheckCircle, XCircle, Loader2, ShieldCheck, User, ChevronDown } from 'lucide-react';
 
 export default function AdminDashboard() {
+    const { toast } = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingRole, setUpdatingRole] = useState(null);
+
+    // Reject Confirmation State
+    const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
+    const [userToReject, setUserToReject] = useState(null);
 
     useEffect(() => {
         fetchUsers();
@@ -27,6 +34,7 @@ export default function AdminDashboard() {
             setUsers(data || []);
         } catch (error) {
             console.error('Error fetching users:', error);
+            toast.error('Failed to load users');
         } finally {
             setLoading(false);
         }
@@ -46,9 +54,10 @@ export default function AdminDashboard() {
             setUsers(users.map(user =>
                 user.id === userId ? { ...user, role: newRole } : user
             ));
+            toast.success('Role updated successfully');
         } catch (error) {
             console.error('Error updating role:', error);
-            alert('Failed to update role.');
+            toast.error('Failed to update role.');
         } finally {
             setUpdatingRole(null);
         }
@@ -79,21 +88,27 @@ export default function AdminDashboard() {
                     role: u.role === 'admin' ? 'admin' : (u.role || 'professor')
                 } : u
             ));
+            toast.success('User approved');
         } catch (error) {
             console.error('Error approving user:', error);
-            alert('Failed to approve user.');
+            toast.error('Failed to approve user.');
         }
     };
 
-    const handleReject = async (userId) => {
-        if (!window.confirm('Are you sure you want to reject this user? They will need to register again.')) return;
+    const handleRejectClick = (user) => {
+        setUserToReject(user);
+        setRejectConfirmOpen(true);
+    };
+
+    const confirmRejectUser = async () => {
+        if (!userToReject) return;
 
         try {
             // Delete from profiles
             const { error } = await supabase
                 .from('profiles')
                 .delete()
-                .eq('id', userId);
+                .eq('id', userToReject.id);
 
             if (error) throw error;
 
@@ -101,10 +116,14 @@ export default function AdminDashboard() {
             // For now, removing from profiles prevents them from showing up here.
             // They would still exist in Auth but be "unapproved".
 
-            setUsers(users.filter(user => user.id !== userId));
+            setUsers(users.filter(user => user.id !== userToReject.id));
+            toast.success('User rejected and removed from profiles');
         } catch (error) {
             console.error('Error rejecting user:', error);
-            alert('Failed to reject user.');
+            toast.error('Failed to reject user.');
+        } finally {
+            setRejectConfirmOpen(false);
+            setUserToReject(null);
         }
     };
 
@@ -170,8 +189,8 @@ export default function AdminDashboard() {
                                                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                                                             disabled={updatingRole === user.id}
                                                             className={`appearance-none px-3 py-1.5 pr-8 rounded text-xs font-medium cursor-pointer border-0 focus:ring-2 focus:ring-blue-500 ${user.role === 'professor'
-                                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                                                 } ${updatingRole === user.id ? 'opacity-50' : ''}`}
                                                         >
                                                             <option value="student">STUDENT</option>
@@ -209,7 +228,7 @@ export default function AdminDashboard() {
                                                             size="sm"
                                                             variant="outline"
                                                             className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 h-8 px-3"
-                                                            onClick={() => handleReject(user.id)}
+                                                            onClick={() => handleRejectClick(user)}
                                                         >
                                                             Reject
                                                         </Button>
@@ -224,6 +243,17 @@ export default function AdminDashboard() {
                     )}
                 </Card>
             </main>
+
+            <ConfirmDialog
+                isOpen={rejectConfirmOpen}
+                onClose={() => setRejectConfirmOpen(false)}
+                onConfirm={confirmRejectUser}
+                title="Reject User?"
+                description={`Are you sure you want to reject "${userToReject?.full_name}"? They will need to register again if this is a mistake.`}
+                confirmText="Reject User"
+                cancelText="Cancel"
+                variant="danger"
+            />
         </div>
     );
 }

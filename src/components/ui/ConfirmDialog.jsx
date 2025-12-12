@@ -11,7 +11,8 @@ export function ConfirmDialog({
     description,
     confirmText = "Confirm",
     cancelText = "Cancel",
-    variant = "danger" // danger, warning, info
+    variant = "danger", // danger, warning, info
+    children
 }) {
     if (!isOpen) return null;
 
@@ -67,13 +68,14 @@ export function ConfirmDialog({
                                 <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${style.icon}`}>
                                     <AlertTriangle size={24} />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
                                         {title}
                                     </h3>
-                                    <p className="text-slate-500 leading-relaxed">
+                                    <p className="text-slate-500 leading-relaxed mb-4">
                                         {description}
                                     </p>
+                                    {children}
                                 </div>
                             </div>
 

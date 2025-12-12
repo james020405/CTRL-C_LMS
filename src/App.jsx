@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './components/ui/Toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ProfessorRoute from './components/auth/ProfessorRoute';
 import AdminRoute from './components/auth/AdminRoute';
@@ -52,46 +53,48 @@ function LoadingFallback() {
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <Suspense fallback={<LoadingFallback />}>
-                    <Routes>
-                        <Route path="/" element={<Landing />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/email-confirmed" element={<EmailConfirmed />} />
-                        <Route element={<ProtectedRoute />}>
-                            <Route element={<ProfessorRoute />}>
-                                <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
+            <ToastProvider>
+                <BrowserRouter>
+                    <Suspense fallback={<LoadingFallback />}>
+                        <Routes>
+                            <Route path="/" element={<Landing />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
+                            <Route path="/email-confirmed" element={<EmailConfirmed />} />
+                            <Route element={<ProtectedRoute />}>
+                                <Route element={<ProfessorRoute />}>
+                                    <Route path="/professor/dashboard" element={<ProfessorDashboard />} />
+                                </Route>
+                                <Route element={<AdminRoute />}>
+                                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                </Route>
                             </Route>
-                            <Route element={<AdminRoute />}>
-                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                            </Route>
-                        </Route>
 
-                        {/* Protected Student Routes */}
-                        <Route element={<ProtectedRoute />}>
-                            <Route path="/student" element={<StudentLayout />}>
-                                <Route path="dashboard" element={<StudentDashboard />} />
-                                <Route path="course/:courseId" element={<StudentCourseView />} />
-                                <Route path="systems" element={<SystemsExplorer />} />
-                                <Route path="study" element={<StudyView />} />
-                                <Route path="simulator" element={<SimulatorView />} />
-                                <Route path="flashcards" element={<StudentFlashcards />} />
-                                <Route path="games" element={<GamesHub />} />
-                                <Route path="roulette" element={<FaultRoulette />} />
-                                <Route path="service-writer" element={<ServiceWriter />} />
-                                <Route path="cross-system" element={<CrossSystemDetective />} />
-                                <Route path="tool-selection" element={<ToolSelectionChallenge />} />
-                                <Route path="chain-reaction" element={<SystemChainReaction />} />
-                                <Route path="progress" element={<ProgressDashboard />} />
-                                <Route path="leaderboard" element={<Leaderboard />} />
-                                <Route path="profile" element={<ProfileSettings />} />
+                            {/* Protected Student Routes */}
+                            <Route element={<ProtectedRoute />}>
+                                <Route path="/student" element={<StudentLayout />}>
+                                    <Route path="dashboard" element={<StudentDashboard />} />
+                                    <Route path="course/:courseId" element={<StudentCourseView />} />
+                                    <Route path="systems" element={<SystemsExplorer />} />
+                                    <Route path="study" element={<StudyView />} />
+                                    <Route path="simulator" element={<SimulatorView />} />
+                                    <Route path="flashcards" element={<StudentFlashcards />} />
+                                    <Route path="games" element={<GamesHub />} />
+                                    <Route path="roulette" element={<FaultRoulette />} />
+                                    <Route path="service-writer" element={<ServiceWriter />} />
+                                    <Route path="cross-system" element={<CrossSystemDetective />} />
+                                    <Route path="tool-selection" element={<ToolSelectionChallenge />} />
+                                    <Route path="chain-reaction" element={<SystemChainReaction />} />
+                                    <Route path="progress" element={<ProgressDashboard />} />
+                                    <Route path="leaderboard" element={<Leaderboard />} />
+                                    <Route path="profile" element={<ProfileSettings />} />
+                                </Route>
                             </Route>
-                        </Route>
-                    </Routes>
-                </Suspense>
-            </BrowserRouter>
+                        </Routes>
+                    </Suspense>
+                </BrowserRouter>
+            </ToastProvider>
         </AuthProvider>
     );
 }

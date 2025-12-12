@@ -4,15 +4,22 @@ import { Plus, Copy, Trash2, ChevronRight, Check, Loader2, BookOpen, Users } fro
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useToast } from '../../components/ui/Toast';
 
 export default function CourseManager({ onSelectCourse }) {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [courses, setCourses] = useState([]);
     const [newCourseTitle, setNewCourseTitle] = useState('');
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
     const [copiedCode, setCopiedCode] = useState(null);
     const [error, setError] = useState('');
+
+    // Delete Confirmation State
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [courseToDelete, setCourseToDelete] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -65,27 +72,29 @@ export default function CourseManager({ onSelectCourse }) {
 
             setCourses([data, ...courses]);
             setNewCourseTitle('');
+            toast.success('Course created successfully');
         } catch (error) {
             console.error('Error creating course:', error);
-            setError(`Failed to create course: ${error.message}`);
+            toast.error(`Failed to create course: ${error.message}`);
         } finally {
             setCreating(false);
         }
     };
 
-    const handleDeleteCourse = async (courseId, courseTitle) => {
-        const confirmed = window.confirm(
-            `Are you sure you want to delete "${courseTitle}"?\n\nThis will also delete all topics and materials in this course. This action cannot be undone.`
-        );
+    const handleDeleteClick = (course) => {
+        setCourseToDelete(course);
+        setDeleteConfirmOpen(true);
+    };
 
-        if (!confirmed) return;
+    const confirmDeleteCourse = async () => {
+        if (!courseToDelete) return;
 
         try {
             // First delete materials in topics of this course
             const { data: topics } = await supabase
                 .from('topics')
                 .select('id')
-                .eq('course_id', courseId);
+                .eq('course_id', courseToDelete.id);
 
             if (topics?.length) {
                 const topicIds = topics.map(t => t.id);
@@ -93,20 +102,24 @@ export default function CourseManager({ onSelectCourse }) {
             }
 
             // Then delete topics
-            await supabase.from('topics').delete().eq('course_id', courseId);
+            await supabase.from('topics').delete().eq('course_id', courseToDelete.id);
 
             // Finally delete the course
             const { error } = await supabase
                 .from('courses')
                 .delete()
-                .eq('id', courseId);
+                .eq('id', courseToDelete.id);
 
             if (error) throw error;
 
-            setCourses(courses.filter(c => c.id !== courseId));
+            setCourses(courses.filter(c => c.id !== courseToDelete.id));
+            toast.success('Course deleted');
         } catch (error) {
             console.error('Error deleting course:', error);
-            setError(`Failed to delete course: ${error.message}`);
+            toast.error(`Failed to delete course: ${error.message}`);
+        } finally {
+            setDeleteConfirmOpen(false);
+            setCourseToDelete(null);
         }
     };
 
@@ -114,6 +127,7 @@ export default function CourseManager({ onSelectCourse }) {
         try {
             await navigator.clipboard.writeText(code);
             setCopiedCode(code);
+            toast.success('Access code copied!');
             setTimeout(() => setCopiedCode(null), 2000);
         } catch (err) {
             // Fallback for older browsers
@@ -124,6 +138,7 @@ export default function CourseManager({ onSelectCourse }) {
             document.execCommand('copy');
             document.body.removeChild(textArea);
             setCopiedCode(code);
+            toast.success('Code copied to clipboard');
             setTimeout(() => setCopiedCode(null), 2000);
         }
     };
@@ -243,7 +258,7 @@ export default function CourseManager({ onSelectCourse }) {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => handleDeleteCourse(course.id, course.title)}
+                                                    onClick={() => handleDeleteClick(course)}
                                                     className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
                                                 >
                                                     <Trash2 size={16} />
@@ -263,6 +278,17 @@ export default function CourseManager({ onSelectCourse }) {
                     })}
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={confirmDeleteCourse}
+                title="Delete Course?"
+                description={`Are you sure you want to delete "${courseToDelete?.title}"? This will permanently remove all topics and materials associated with this course.`}
+                confirmText="Delete Course"
+                cancelText="Cancel"
+                variant="danger"
+            />
         </div>
     );
 }

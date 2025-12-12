@@ -13,7 +13,6 @@ export default function SystemsExplorer() {
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         7 Systems Explorer
-                        <Sparkles className="text-yellow-500 w-6 h-6" />
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400">
                         Interactive guide to automotive anatomy
@@ -23,6 +22,6 @@ export default function SystemsExplorer() {
 
             {/* Systems Grid */}
             <SevenSystems />
-        </div>
+        </div >
     );
 }
