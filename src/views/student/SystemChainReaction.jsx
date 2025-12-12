@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { getChainReactionScenario } from '../../data/chainReactionData';
+import { generateChainReactionScenario } from '../../lib/gemini';
 import { getRemainingPlays, recordPlay, submitScore, SCORE_MULTIPLIERS } from '../../lib/gameService';
 import { useAuth } from '../../contexts/AuthContext';
 import DifficultySelector from '../../components/DifficultySelector';
@@ -57,13 +57,13 @@ export default function SystemChainReaction() {
         }
     };
 
-    const loadScenario = (diff = difficulty) => {
+    const loadScenario = async (diff = difficulty) => {
         setLoading(true);
         setSelectedOption(null);
         setShowResult(false);
 
         try {
-            const scenario = getChainReactionScenario(diff);
+            const scenario = await generateChainReactionScenario(diff);
             setCurrentScenario(scenario);
         } catch (err) {
             console.error("Error loading scenario:", err);
@@ -146,12 +146,6 @@ export default function SystemChainReaction() {
                 </div>
                 {gameState === 'playing' && (
                     <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <p className="text-xs text-slate-500 uppercase">Round {roundNumber}</p>
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                Streak: {streak} 🔥
-                            </p>
-                        </div>
                         <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-xl">
                             <Trophy className="text-yellow-500" />
                             <span className="font-bold text-yellow-700 dark:text-yellow-400">{score} pts</span>
@@ -177,8 +171,8 @@ export default function SystemChainReaction() {
                     {/* Difficulty Badge */}
                     <div className="flex items-center justify-between">
                         <span className={`px-3 py-1 rounded-full text-sm font-bold ${difficulty === 'easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                             {difficulty?.toUpperCase()}
                         </span>
