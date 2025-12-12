@@ -26,9 +26,16 @@ if (API_KEY) {
 }
 
 // OpenRouter PRIMARY AI (uses OpenAI-compatible API format with Kimi K2 free)
+// DEBUG: Log whether env variable exists
+console.log("🔍 DEBUG: OPENROUTER_API_KEY exists?", !!OPENROUTER_API_KEY);
+console.log("🔍 DEBUG: OPENROUTER_API_KEY starts with:", OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 15) + "..." : "undefined");
+console.log("🔍 DEBUG: All VITE_ env vars:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
+
 const openRouterAvailable = !!OPENROUTER_API_KEY;
 if (openRouterAvailable) {
     console.log("🔑 OpenRouter API key found (Kimi K2 - PRIMARY)");
+} else {
+    console.warn("⚠️ OpenRouter API key NOT FOUND - will use Gemini/fallback only");
 }
 
 /**
