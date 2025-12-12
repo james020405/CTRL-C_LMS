@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCrossSystemCase } from '../data/crossSystemCases';
+import { getChainReactionScenario } from '../data/chainReactionData';
 import logger from './logger';
 
 // Initialize Gemini with multiple model fallbacks
@@ -674,9 +675,6 @@ export const evaluateCrossSystemDiagnosis = (caseData, selectedOptionId) => {
  * @returns {Promise<Object>} - Scenario object with failure, effects, options
  */
 export const generateChainReactionScenario = async (difficulty = 'easy') => {
-    // Import fallback dynamically to avoid circular dependencies
-    const { getChainReactionScenario } = await import('../data/chainReactionData');
-
     if (!model) {
         return getChainReactionScenario(difficulty);
     }
