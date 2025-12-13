@@ -222,7 +222,6 @@ export const CHAIN_REACTION_SCENARIOS = {
         }
     ]
 };
-
 /**
  * Get a random chain reaction scenario
  * @param {string} difficulty - 'easy', 'medium', or 'hard'
@@ -232,11 +231,30 @@ export const getChainReactionScenario = (difficulty = 'easy') => {
     const scenarios = CHAIN_REACTION_SCENARIOS[difficulty] || CHAIN_REACTION_SCENARIOS.easy;
     const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
 
-    // Shuffle options
-    const options = [
+    // Helper to normalize chain lengths so correct isn't obviously longer
+    const normalizeChainLength = (options) => {
+        const countSteps = (text) => (text.match(/→/g) || []).length;
+        const steps = options.map(o => countSteps(o.text));
+        const minSteps = Math.min(...steps);
+        const targetSteps = Math.max(minSteps, 3);
+
+        return options.map(opt => {
+            const parts = opt.text.split('→').map(p => p.trim());
+            if (parts.length > targetSteps + 1) {
+                return { ...opt, text: parts.slice(0, targetSteps + 1).join(' → ') };
+            }
+            return opt;
+        });
+    };
+
+    // Create options
+    let options = [
         { id: 'correct', text: scenario.chainEffect, isCorrect: true },
         ...scenario.wrongEffects.map((effect, i) => ({ id: `wrong${i}`, text: effect, isCorrect: false }))
     ];
+
+    // Normalize lengths
+    options = normalizeChainLength(options);
 
     // Fisher-Yates shuffle
     for (let i = options.length - 1; i > 0; i--) {

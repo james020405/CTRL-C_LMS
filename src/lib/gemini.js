@@ -901,41 +901,84 @@ export const generateChainReactionScenario = async (difficulty = 'easy') => {
     const primarySystem = automotiveSystems[Math.floor(Math.random() * automotiveSystems.length)];
     const randomSeed = Math.floor(Math.random() * 10000);
 
-    const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz about how failures cascade through interconnected vehicle systems.
+    const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz.
 
 DIFFICULTY: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
 
 PRIMARY SYSTEM: ${primarySystem}
-Random seed for variety: ${randomSeed}
+Seed: ${randomSeed}
 
-Create a scenario where a failure in one system causes a cascade effect on other systems.
+Generate a failure scenario with ONE correct chain reaction and THREE WRONG alternatives.
 
-Return ONLY this JSON (no markdown):
+CRITICAL RULES:
+1. Each option MUST be COMPLETELY DIFFERENT - different systems, different effects
+2. All 4 options should have 3-4 arrow steps (similar length)
+3. Wrong options should be PLAUSIBLE but incorrect for THIS specific failure
+
+Example format:
+If failure is "Thermostat stuck OPEN":
+- CORRECT: "Engine runs cold → Heater blows cold → ECU runs rich → Poor fuel economy"
+- WRONG1: "Engine overheats → Coolant boils → Head gasket fails" (wrong - this is stuck CLOSED)
+- WRONG2: "Battery drains → Starter fails → No crank" (wrong - unrelated system)
+- WRONG3: "Transmission overheats → Harsh shifting → Limp mode" (wrong - unrelated)
+
+Return ONLY this JSON:
 {
-    "primaryFailure": "Short description of what failed (e.g., 'Thermostat stuck open')",
+    "primaryFailure": "What failed",
     "affectedSystem": "${primarySystem}",
-    "scenario": "Customer complaint and symptoms they describe",
-    "chainEffect": "Correct answer: System A fails → Effect on B → Effect on C (use arrows)",
+    "scenario": "Customer complaint",
+    "chainEffect": "Correct: A → B → C → D",
     "wrongEffects": [
-        "Plausible but wrong chain effect #1",
-        "Plausible but wrong chain effect #2", 
-        "Plausible but wrong chain effect #3"
+        "Wrong chain involving different outcome",
+        "Wrong chain involving unrelated system",
+        "Wrong chain that sounds right but isn't"
     ],
-    "explanation": "Detailed explanation of why and how the cascade happens",
-    "systems": ["List", "Of", "Affected", "Systems"]
+    "explanation": "Why the correct answer is right",
+    "systems": ["Affected", "Systems"]
 }`;
+
+    // Helper to normalize chain length - all options should have similar number of steps
+    const normalizeChainLength = (options) => {
+        // Count arrows in each option to determine "steps"
+        const countSteps = (text) => (text.match(/→/g) || []).length;
+
+        // Find the minimum number of steps among all options
+        const steps = options.map(o => countSteps(o.text));
+        const minSteps = Math.min(...steps);
+        const targetSteps = Math.max(minSteps, 3); // At least 3 steps
+
+        // Truncate options that are too long
+        return options.map(opt => {
+            const parts = opt.text.split('→').map(p => p.trim());
+            if (parts.length > targetSteps + 1) {
+                // Take first (targetSteps + 1) parts
+                const truncated = parts.slice(0, targetSteps + 1).join(' → ');
+                return { ...opt, text: truncated };
+            }
+            return opt;
+        });
+    };
 
     // Helper to parse AI response and format scenario
     const parseScenario = (text) => {
         const cleanText = text.replace(/```json|```/g, '').trim();
         const scenario = JSON.parse(cleanText);
 
-        // Create options array with shuffled order
-        const options = [
+        // Create options array
+        let options = [
             { id: 'correct', text: scenario.chainEffect, isCorrect: true },
             ...scenario.wrongEffects.map((effect, i) => ({ id: `wrong${i}`, text: effect, isCorrect: false }))
         ];
+
+        // Normalize chain lengths so correct isn't obviously longer
+        options = normalizeChainLength(options);
+
+        // Check for duplicate options (lazy AI) - if found, throw to use fallback
+        const uniqueTexts = new Set(options.map(o => o.text.toLowerCase().trim()));
+        if (uniqueTexts.size < options.length) {
+            throw new Error('AI generated duplicate options');
+        }
 
         // Shuffle options
         for (let i = options.length - 1; i > 0; i--) {

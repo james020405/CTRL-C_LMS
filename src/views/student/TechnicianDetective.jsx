@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateTechnicianCase, runDiagnosticTest, evaluateTechnicianDiagnosis, askTechnicianToCheck } from '../../lib/gemini';
-import { submitScore } from '../../lib/gameService';
+import { submitScore, getRemainingPlays, recordPlay } from '../../lib/gameService';
+import DifficultySelector from '../../components/DifficultySelector';
 
 const DIFFICULTY_CONFIG = {
     easy: {
@@ -64,8 +65,22 @@ export default function TechnicianDetective() {
     // For custom test input (medium/hard)
     const [customTestInput, setCustomTestInput] = useState('');
     const [runningCustomTest, setRunningCustomTest] = useState(false);
+    // Play tracking like other games
+    const [remainingPlays, setRemainingPlays] = useState({ easy: 5, medium: 5, hard: 2 });
 
     const config = difficulty ? DIFFICULTY_CONFIG[difficulty] : null;
+
+    // Load remaining plays on mount
+    useEffect(() => {
+        if (user?.id) {
+            loadRemainingPlays();
+        }
+    }, [user?.id]);
+
+    const loadRemainingPlays = async () => {
+        const plays = await getRemainingPlays(user?.id, 'technician_detective');
+        setRemainingPlays(plays);
+    };
 
     const startGame = async (selectedDifficulty) => {
         setDifficulty(selectedDifficulty);
@@ -80,6 +95,10 @@ export default function TechnicianDetective() {
         setCustomTestInput('');
 
         try {
+            // Record play like other games
+            await recordPlay(user?.id, 'technician_detective', selectedDifficulty);
+            await loadRemainingPlays();
+
             const newCase = await generateTechnicianCase(selectedDifficulty);
             setCaseData(newCase);
             setGameState('investigation');
@@ -181,6 +200,7 @@ export default function TechnicianDetective() {
     };
 
     const playAgain = () => {
+        loadRemainingPlays();
         setGameState('difficulty');
         setCaseData(null);
         setDifficulty(null);
@@ -225,25 +245,17 @@ export default function TechnicianDetective() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                    {Object.entries(DIFFICULTY_CONFIG).map(([key, cfg]) => (
-                        <Card
-                            key={key}
-                            className={`p-6 cursor-pointer transition-all hover:scale-105 hover:shadow-lg border-2 border-transparent hover:border-${cfg.color}-500`}
-                            onClick={() => startGame(key)}
-                        >
-                            <div className={`w-12 h-12 rounded-full bg-${cfg.color}-100 dark:bg-${cfg.color}-900/30 flex items-center justify-center mb-4`}>
-                                <Search className={`text-${cfg.color}-600 dark:text-${cfg.color}-400`} size={24} />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{cfg.label}</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">{cfg.description}</p>
-                            <div className="flex items-center gap-4 text-xs text-slate-400">
-                                <span>{cfg.testsAllowed} tests</span>
-                                <span>{cfg.multiplier}x score</span>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={startGame}
+                    loading={loading}
+                    customConfig={{
+                        easy: { description: 'Pre-set diagnostic tests, 5 allowed' },
+                        medium: { description: 'Type your own commands, 3 allowed' },
+                        hard: { description: 'Limited commands, no hints' }
+                    }}
+                    GameIcon={Search}
+                />
             )}
 
             {/* Investigation Phase */}

@@ -298,21 +298,10 @@ export default function SystemChainReaction() {
                                 <p className="text-slate-600 dark:text-slate-300 text-sm">{currentScenario.explanation}</p>
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <Button
-                                    onClick={nextRound}
-                                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <Loader2 className="animate-spin" size={18} />
-                                    ) : (
-                                        <>Next Scenario <ArrowRight size={16} className="ml-2" /></>
-                                    )}
-                                </Button>
-                                <Button variant="ghost" onClick={playAgain}>
+                            <div className="flex justify-center mt-6">
+                                <Button onClick={playAgain} className="bg-orange-600 hover:bg-orange-700 text-white">
                                     <RefreshCw size={16} className="mr-2" />
-                                    New Game
+                                    Play Again
                                 </Button>
                             </div>
                         </Card>
