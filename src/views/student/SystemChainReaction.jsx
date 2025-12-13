@@ -115,7 +115,7 @@ export default function SystemChainReaction() {
     // Loading state
     if (loading && !currentScenario) {
         return (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -134,7 +134,7 @@ export default function SystemChainReaction() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
@@ -156,13 +156,16 @@ export default function SystemChainReaction() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <Card className="p-8">
-                    <DifficultySelector
-                        remainingPlays={remainingPlays}
-                        onSelect={selectDifficulty}
-                        loading={loading}
-                    />
-                </Card>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={selectDifficulty}
+                    loading={loading}
+                    customConfig={{
+                        easy: { description: 'Simple chain reactions' },
+                        medium: { description: 'Complex system interactions' },
+                        hard: { description: 'Hidden connections, multiple paths' }
+                    }}
+                />
             )}
 
             {/* Game Playing */}

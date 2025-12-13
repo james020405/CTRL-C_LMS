@@ -326,13 +326,16 @@ export default function FaultRoulette() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <Card className="p-8">
-                    <DifficultySelector
-                        remainingPlays={remainingPlays}
-                        onSelect={selectDifficulty}
-                        loading={false}
-                    />
-                </Card>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={selectDifficulty}
+                    loading={false}
+                    customConfig={{
+                        easy: { description: 'Common faults, clear symptoms' },
+                        medium: { description: 'Trickier diagnoses required' },
+                        hard: { description: 'Obscure faults, subtle clues' }
+                    }}
+                />
             )}
 
             {/* Loading */}

@@ -130,13 +130,16 @@ export default function CrossSystemDetective() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <Card className="p-8">
-                    <DifficultySelector
-                        remainingPlays={remainingPlays}
-                        onSelect={selectDifficulty}
-                        loading={loading}
-                    />
-                </Card>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={selectDifficulty}
+                    loading={loading}
+                    customConfig={{
+                        easy: { description: 'Simple cross-system problems' },
+                        medium: { description: 'Multiple interconnected systems' },
+                        hard: { description: 'Complex hidden root causes' }
+                    }}
+                />
             )}
 
             {/* Game Playing State */}

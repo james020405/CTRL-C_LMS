@@ -156,13 +156,16 @@ export default function ToolSelectionChallenge() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <Card className="p-8">
-                    <DifficultySelector
-                        remainingPlays={remainingPlays}
-                        onSelect={selectDifficulty}
-                        loading={loading}
-                    />
-                </Card>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={selectDifficulty}
+                    loading={loading}
+                    customConfig={{
+                        easy: { description: 'Basic repair tasks' },
+                        medium: { description: 'More specialized tools needed' },
+                        hard: { description: 'Expert tool knowledge required' }
+                    }}
+                />
             )}
 
             {/* Game Playing State */}

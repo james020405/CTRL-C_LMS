@@ -14,14 +14,18 @@ const GAME_ICONS = {
     fault_roulette: AlertTriangle,
     service_writer: FileText,
     cross_system: Link2,
-    tool_selection: Wrench
+    tool_selection: Wrench,
+    chain_reaction: Link2,
+    technician_detective: Zap
 };
 
 const GAME_LABELS = {
     fault_roulette: { name: 'Fault Roulette', color: 'text-red-600 bg-red-100 dark:bg-red-900/20' },
     service_writer: { name: 'Service Writer', color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20' },
     cross_system: { name: 'Cross-System', color: 'text-purple-600 bg-purple-100 dark:bg-purple-900/20' },
-    tool_selection: { name: 'Tool Selection', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' }
+    tool_selection: { name: 'Tool Selection', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' },
+    chain_reaction: { name: 'Chain Reaction', color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/20' },
+    technician_detective: { name: 'Tech Detective', color: 'text-cyan-600 bg-cyan-100 dark:bg-cyan-900/20' }
 };
 
 // Stat card component

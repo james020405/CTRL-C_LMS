@@ -356,13 +356,16 @@ export default function ServiceWriter() {
 
             {/* Difficulty Selection */}
             {gameState === 'difficulty' && (
-                <Card className="p-8">
-                    <DifficultySelector
-                        remainingPlays={remainingPlays}
-                        onSelect={selectDifficulty}
-                        loading={loading}
-                    />
-                </Card>
+                <DifficultySelector
+                    remainingPlays={remainingPlays}
+                    onSelect={selectDifficulty}
+                    loading={loading}
+                    customConfig={{
+                        easy: { description: 'Friendly customers, clear problems' },
+                        medium: { description: 'Mixed moods, tighter budgets' },
+                        hard: { description: 'Demanding customers, complex issues' }
+                    }}
+                />
             )}
 
             {/* Game UI */}

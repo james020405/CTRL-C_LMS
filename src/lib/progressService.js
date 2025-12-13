@@ -20,7 +20,7 @@ export const getStudentProgress = async (userId) => {
 
         // Breakdown by game
         const gameBreakdown = {};
-        const gameTypes = ['fault_roulette', 'service_writer', 'cross_system', 'tool_selection'];
+        const gameTypes = ['fault_roulette', 'service_writer', 'cross_system', 'tool_selection', 'chain_reaction', 'technician_detective'];
         gameTypes.forEach(type => {
             const gameScores = scores?.filter(s => s.game_type === type) || [];
             gameBreakdown[type] = {

@@ -195,7 +195,7 @@ export default function TechnicianDetective() {
 
     if (loading && gameState === 'difficulty') {
         return (
-            <div className="max-w-4xl mx-auto flex items-center justify-center py-20">
+            <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
                 <div className="text-center">
                     <Loader2 className="animate-spin h-12 w-12 text-cyan-500 mx-auto mb-4" />
                     <p className="text-slate-700 dark:text-slate-300 text-lg">Generating diagnostic case...</p>
@@ -205,7 +205,7 @@ export default function TechnicianDetective() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -313,8 +313,8 @@ export default function TechnicianDetective() {
                                 Diagnostic Tests
                             </h3>
                             <span className={`px-3 py-1 rounded-full text-sm ${testsUsed.length >= config?.testsAllowed
-                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                 }`}>
                                 {config?.testsAllowed - testsUsed.length} remaining
                             </span>
@@ -332,10 +332,10 @@ export default function TechnicianDetective() {
                                             onClick={() => performPresetTest(test.id)}
                                             disabled={isDisabled}
                                             className={`flex items-center gap-4 p-4 rounded-lg text-left transition-all ${isUsed
-                                                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                                                    : isDisabled
-                                                        ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                                                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent hover:border-cyan-500'
+                                                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                                : isDisabled
+                                                    ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                                                    : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent hover:border-cyan-500'
                                                 }`}
                                         >
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUsed ? 'bg-green-100 dark:bg-green-900/50' : 'bg-slate-200 dark:bg-slate-700'
@@ -414,8 +414,8 @@ export default function TechnicianDetective() {
                                     key={diag.id}
                                     onClick={() => setSelectedDiagnosis(diag.id)}
                                     className={`p-4 rounded-lg text-left transition-all ${selectedDiagnosis === diag.id
-                                            ? 'bg-cyan-50 dark:bg-cyan-900/30 border-2 border-cyan-500'
-                                            : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-transparent'
+                                        ? 'bg-cyan-50 dark:bg-cyan-900/30 border-2 border-cyan-500'
+                                        : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-transparent'
                                         }`}
                                 >
                                     <span className="text-slate-900 dark:text-white font-medium">{diag.label}</span>
@@ -481,8 +481,8 @@ export default function TechnicianDetective() {
             {gameState === 'result' && result && (
                 <div className="max-w-2xl mx-auto">
                     <Card className={`p-8 text-center border-2 ${result.isCorrect
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                            : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : 'border-red-500 bg-red-50 dark:bg-red-900/20'
                         }`}>
                         <div className={`w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center ${result.isCorrect ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'
                             }`}>

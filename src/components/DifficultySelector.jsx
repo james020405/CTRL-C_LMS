@@ -1,93 +1,121 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Card } from './ui/Card';
-import { Button } from './ui/Button';
-import { Zap, Flame, Skull, Lock } from 'lucide-react';
+import { Zap, Flame, Skull, Lock, Search } from 'lucide-react';
 
 const DIFFICULTY_CONFIG = {
     easy: {
         label: 'Easy',
         description: 'Friendly customers, clear problems',
         icon: Zap,
-        color: 'text-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        borderColor: 'border-green-500',
+        color: 'emerald',
         multiplier: '1x'
     },
     medium: {
         label: 'Medium',
         description: 'Mixed moods, tighter budgets',
         icon: Flame,
-        color: 'text-yellow-500',
-        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-        borderColor: 'border-yellow-500',
+        color: 'amber',
         multiplier: '1.5x'
     },
     hard: {
         label: 'Hard',
         description: 'Angry customers, vague complaints',
         icon: Skull,
-        color: 'text-red-500',
-        bgColor: 'bg-red-50 dark:bg-red-900/20',
-        borderColor: 'border-red-500',
+        color: 'red',
         multiplier: '2x'
     }
 };
 
-export default function DifficultySelector({ remainingPlays, onSelect, loading }) {
+/**
+ * Clean difficulty selector matching TechnicianDetective design
+ * 
+ * @param {Object} props
+ * @param {Object} remainingPlays - Plays remaining per difficulty { easy, medium, hard }
+ * @param {Function} onSelect - Callback when difficulty selected
+ * @param {boolean} loading - Show loading state
+ * @param {Object} customConfig - Override default descriptions/info per difficulty
+ * @param {string} Icon - Override the icon component used (default uses difficulty-specific)
+ */
+export default function DifficultySelector({
+    remainingPlays,
+    onSelect,
+    loading,
+    customConfig = {},
+    GameIcon = null  // Optional: use same icon for all difficulties like TechnicianDetective
+}) {
+    const getConfig = (key) => {
+        return {
+            ...DIFFICULTY_CONFIG[key],
+            ...customConfig[key]
+        };
+    };
+
     return (
-        <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-6">
-                Select Difficulty
-            </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            {Object.entries(DIFFICULTY_CONFIG).map(([key, baseConfig]) => {
+                const config = getConfig(key);
+                const remaining = remainingPlays?.[key] ?? 5;
+                const isLocked = remaining <= 0;
+                const IconComponent = GameIcon || (isLocked ? Lock : config.icon);
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => {
-                    const remaining = remainingPlays?.[key] ?? 0;
-                    const isLocked = remaining <= 0;
-                    const Icon = isLocked ? Lock : config.icon;
+                // Color classes for each difficulty
+                const colorClasses = {
+                    emerald: {
+                        iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+                        iconText: 'text-emerald-600 dark:text-emerald-400',
+                        hoverBorder: 'hover:border-emerald-500'
+                    },
+                    amber: {
+                        iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+                        iconText: 'text-amber-600 dark:text-amber-400',
+                        hoverBorder: 'hover:border-amber-500'
+                    },
+                    red: {
+                        iconBg: 'bg-red-100 dark:bg-red-900/30',
+                        iconText: 'text-red-600 dark:text-red-400',
+                        hoverBorder: 'hover:border-red-500'
+                    }
+                };
 
-                    return (
-                        <button
-                            key={key}
-                            onClick={() => !isLocked && !loading && onSelect(key)}
-                            disabled={isLocked || loading}
-                            aria-label={`Select ${config.label} difficulty. ${remaining} plays remaining. Score multiplier: ${config.multiplier}`}
-                            className={`
-                                p-6 rounded-xl border-2 text-left transition-all
-                                ${isLocked
-                                    ? 'border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed'
-                                    : `${config.borderColor} ${config.bgColor} hover:scale-105 cursor-pointer`
-                                }
-                            `}
-                        >
-                            <div className="flex items-center gap-3 mb-3">
-                                <Icon className={isLocked ? 'text-slate-400' : config.color} size={28} aria-hidden="true" />
-                                <div>
-                                    <h4 className="font-bold text-lg text-slate-900 dark:text-white">
-                                        {config.label}
-                                    </h4>
-                                    <span className={`text-xs font-mono ${config.color}`}>
-                                        {config.multiplier} Score
-                                    </span>
-                                </div>
-                            </div>
+                const colors = colorClasses[config.color] || colorClasses.emerald;
 
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                                {config.description}
-                            </p>
+                return (
+                    <Card
+                        key={key}
+                        className={`p-6 cursor-pointer transition-all border-2 border-transparent ${isLocked
+                                ? 'opacity-50 cursor-not-allowed'
+                                : `hover:scale-105 hover:shadow-lg ${colors.hoverBorder}`
+                            }`}
+                        onClick={() => !isLocked && !loading && onSelect(key)}
+                    >
+                        {/* Circular Icon */}
+                        <div className={`w-12 h-12 rounded-full ${colors.iconBg} flex items-center justify-center mb-4`}>
+                            <IconComponent
+                                className={isLocked ? 'text-slate-400' : colors.iconText}
+                                size={24}
+                                aria-hidden="true"
+                            />
+                        </div>
 
-                            <div className={`text-sm font-medium ${isLocked ? 'text-red-500' : 'text-slate-500'}`}>
-                                {isLocked ? 'No plays left today' : `${remaining} plays remaining`}
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
+                        {/* Title */}
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            {config.label}
+                        </h3>
 
-            <p className="text-center text-xs text-slate-400 mt-4">
-                Daily limits reset at midnight (PH time)
-            </p>
+                        {/* Description */}
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
+                            {config.description}
+                        </p>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                            <span>{isLocked ? 'No plays left' : `${remaining} plays`}</span>
+                            <span>{config.multiplier} score</span>
+                        </div>
+                    </Card>
+                );
+            })}
         </div>
     );
 }
@@ -103,10 +131,15 @@ DifficultySelector.propTypes = {
     onSelect: PropTypes.func.isRequired,
     /** Whether the selector is in a loading state */
     loading: PropTypes.bool,
+    /** Custom config to override descriptions per difficulty */
+    customConfig: PropTypes.object,
+    /** Optional icon component to use for all difficulties */
+    GameIcon: PropTypes.elementType
 };
 
 DifficultySelector.defaultProps = {
     remainingPlays: { easy: 5, medium: 5, hard: 2 },
     loading: false,
+    customConfig: {},
+    GameIcon: null
 };
-

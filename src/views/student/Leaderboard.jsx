@@ -10,7 +10,9 @@ const GAME_OPTIONS = [
     { value: 'fault_roulette', label: 'Fault Roulette' },
     { value: 'service_writer', label: 'Service Writer' },
     { value: 'cross_system', label: 'Cross-System Detective' },
-    { value: 'tool_selection', label: 'Tool Selection' }
+    { value: 'tool_selection', label: 'Tool Selection' },
+    { value: 'chain_reaction', label: 'Chain Reaction' },
+    { value: 'technician_detective', label: 'Tech Detective' }
 ];
 
 const DIFFICULTY_OPTIONS = [
@@ -166,8 +168,8 @@ export default function Leaderboard() {
                                     <div className="flex items-center gap-3">
                                         {/* Rank Badge */}
                                         <div className={`w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 flex items-center justify-center rounded-full font-bold text-sm ${index < 3
-                                                ? `${rankColor} ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30' : index === 1 ? 'bg-slate-100 dark:bg-slate-700' : 'bg-amber-100 dark:bg-amber-900/30'}`
-                                                : 'text-slate-400 bg-slate-100 dark:bg-slate-800'
+                                            ? `${rankColor} ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30' : index === 1 ? 'bg-slate-100 dark:bg-slate-700' : 'bg-amber-100 dark:bg-amber-900/30'}`
+                                            : 'text-slate-400 bg-slate-100 dark:bg-slate-800'
                                             }`}>
                                             {RankIcon ? <RankIcon size={18} /> : index + 1}
                                         </div>
