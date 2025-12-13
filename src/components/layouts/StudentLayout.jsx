@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, PlayCircle, LogOut, BrainCircuit, AlertTriangle, FileText, Trophy, Settings, Link2, Wrench, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Activity, PlayCircle, LogOut, BrainCircuit, AlertTriangle, FileText, Trophy, Settings, Link2, Wrench, TrendingUp, Search } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/Sidebar';
 import { cn } from '../../lib/utils';
@@ -47,6 +47,7 @@ export default function StudentLayout() {
                 { href: '/student/cross-system', icon: <Link2 className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Cross-System' },
                 { href: '/student/tool-selection', icon: <Wrench className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Tool Select' },
                 { href: '/student/chain-reaction', icon: <Link2 className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Chain Reaction' },
+                { href: '/student/technician-detective', icon: <Search className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Tech Detective' },
             ]
         },
         {

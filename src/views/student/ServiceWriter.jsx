@@ -181,6 +181,58 @@ export default function ServiceWriter() {
         };
     };
 
+    // Calculate price accuracy (how close to ideal estimate range)
+    const calculatePriceAccuracy = (grandTotal) => {
+        if (!customer) return 0;
+
+        const idealMin = customer.idealEstimateRange?.min || customer.budget * 0.3;
+        const idealMax = customer.idealEstimateRange?.max || customer.budget * 0.9;
+        const idealMid = (idealMin + idealMax) / 2;
+
+        // If price is too low (below 50% of minimum) = 0 points
+        if (grandTotal < idealMin * 0.5) return 0;
+
+        // If within ideal range = full points
+        if (grandTotal >= idealMin && grandTotal <= idealMax) return 100;
+
+        // If between 50% of min and min = partial credit
+        if (grandTotal < idealMin) {
+            const deviation = (idealMin - grandTotal) / idealMin;
+            return Math.max(0, Math.round((1 - deviation) * 60));
+        }
+
+        // If over ideal max but within budget = partial credit
+        if (grandTotal > idealMax && grandTotal <= customer.budget) {
+            const overage = (grandTotal - idealMax) / (customer.budget - idealMax);
+            return Math.max(0, Math.round((1 - overage * 0.5) * 80));
+        }
+
+        // If over budget = minimal/no credit
+        if (grandTotal > customer.budget) {
+            const overage = (grandTotal - customer.budget) / customer.budget;
+            return Math.max(0, Math.round((1 - overage) * 30));
+        }
+
+        return 50; // Default fallback
+    };
+
+    // Calculate labor hours accuracy
+    const calculateLaborAccuracy = () => {
+        if (!customer?.recommendedLaborHours) return 50; // No data to compare
+
+        const recommended = customer.recommendedLaborHours;
+        const actual = parseFloat(laborHours) || 0;
+
+        if (actual === 0) return 0;
+
+        const deviation = Math.abs(actual - recommended) / recommended;
+
+        if (deviation <= 0.2) return 100; // Within 20%
+        if (deviation <= 0.5) return 70;  // Within 50%
+        if (deviation <= 1.0) return 40;  // Within 100%
+        return 10; // Very far off
+    };
+
     const submitEstimate = async () => {
         // Double-check validation
         const validation = validateEstimate();
@@ -189,29 +241,36 @@ export default function ServiceWriter() {
         setLoading(true);
         const totals = calculateTotal();
         const partsAccuracy = calculatePartsAccuracy();
+        const priceAccuracy = calculatePriceAccuracy(totals.grandTotal);
+        const laborAccuracy = calculateLaborAccuracy();
         const evaluation = await evaluateEstimate(customer, totals, notes);
 
+        // NEW SCORING SYSTEM (100 points max before multiplier):
+        // - Parts Accuracy: 30 points
+        // - Price Accuracy: 30 points  
+        // - Labor Accuracy: 20 points
+        // - Communication: 20 points
+
+        const partsScore = Math.round((partsAccuracy.accuracy / 100) * 30);
+        const priceScore = Math.round((priceAccuracy / 100) * 30);
+        const laborScore = Math.round((laborAccuracy / 100) * 20);
+        const communicationScore = Math.round(((evaluation.communicationScore || 50) / 100) * 20);
+
         let type = '';
-        let baseScore = 0;
 
-        // Scoring now factors in BOTH price acceptance AND parts accuracy!
-        // - 50 points max from customer acceptance (price within budget, good communication)
-        // - 50 points max from parts accuracy (identifying correct parts)
-
+        // Determine result type based on outcome
         if (evaluation.outcome === 'Accepted') {
             type = 'success';
-            baseScore = 50; // Customer happy with price
         } else if (evaluation.outcome === 'Negotiated') {
             type = 'warning';
-            baseScore = 25; // Partial credit for close price
+        } else if (evaluation.outcome === 'Suspicious') {
+            type = 'suspicious'; // New type for low prices
         } else {
             type = 'error';
-            baseScore = 0;
         }
 
-        // Add parts accuracy bonus (up to 50 points)
-        const partsBonus = Math.round((partsAccuracy.accuracy / 100) * 50);
-        baseScore += partsBonus;
+        // Calculate total base score
+        const baseScore = partsScore + priceScore + laborScore + communicationScore;
 
         // Apply difficulty multiplier
         const multiplier = SCORE_MULTIPLIERS[difficulty] || 1;
@@ -231,7 +290,19 @@ export default function ServiceWriter() {
             idealEstimate: evaluation.idealEstimate,
             type,
             grandTotal: totals.grandTotal,
-            partsAccuracy // Include parts accuracy in result for display
+            partsAccuracy, // Include parts accuracy in result for display
+            priceAccuracy,
+            laborAccuracy,
+            communicationScore: evaluation.communicationScore || 50,
+            communicationFeedback: evaluation.communicationFeedback || '',
+            // Individual scores for breakdown display
+            scoreBreakdown: {
+                parts: partsScore,
+                price: priceScore,
+                labor: laborScore,
+                communication: communicationScore,
+                total: baseScore
+            }
         });
 
         setGameState('result');
@@ -561,29 +632,64 @@ export default function ServiceWriter() {
                                     )}
 
                                     {/* Score Breakdown */}
-                                    {result.partsAccuracy && (
+                                    {result.scoreBreakdown && (
                                         <div className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg mb-4">
                                             <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                                                 <Trophy size={16} className="text-yellow-500" />
                                                 Score Breakdown
                                             </h4>
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price Acceptance</p>
-                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                                                        {result.type === 'success' ? '50' : result.type === 'warning' ? '25' : '0'}/50 pts
-                                                    </p>
-                                                    <p className="text-xs text-slate-400">{result.outcome}</p>
-                                                </div>
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                {/* Parts Score */}
                                                 <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
                                                     <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Parts Accuracy</p>
                                                     <p className="font-bold text-lg text-slate-900 dark:text-white">
-                                                        {Math.round(result.partsAccuracy.accuracy / 2)}/50 pts
+                                                        {result.scoreBreakdown.parts}/30 pts
                                                     </p>
                                                     <p className="text-xs text-slate-400">
-                                                        {result.partsAccuracy.matched}/{result.partsAccuracy.total} correct parts
+                                                        {result.partsAccuracy.matched}/{result.partsAccuracy.total} correct
                                                     </p>
                                                 </div>
+                                                {/* Price Score */}
+                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
+                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price Accuracy</p>
+                                                    <p className={`font-bold text-lg ${result.scoreBreakdown.price >= 20 ? 'text-green-600' : result.scoreBreakdown.price >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                        {result.scoreBreakdown.price}/30 pts
+                                                    </p>
+                                                    <p className="text-xs text-slate-400">
+                                                        {result.priceAccuracy >= 80 ? 'Realistic' : result.priceAccuracy >= 40 ? 'Close' : 'Off target'}
+                                                    </p>
+                                                </div>
+                                                {/* Labor Score */}
+                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
+                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Labor Hours</p>
+                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
+                                                        {result.scoreBreakdown.labor}/20 pts
+                                                    </p>
+                                                    <p className="text-xs text-slate-400">
+                                                        {result.laborAccuracy >= 80 ? 'Good estimate' : result.laborAccuracy >= 50 ? 'Reasonable' : 'Needs work'}
+                                                    </p>
+                                                </div>
+                                                {/* Communication Score */}
+                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
+                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Communication</p>
+                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
+                                                        {result.scoreBreakdown.communication}/20 pts
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 truncate" title={result.communicationFeedback}>
+                                                        {result.communicationScore >= 70 ? 'Excellent' : result.communicationScore >= 50 ? 'Good' : 'Needs detail'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {/* Communication Feedback */}
+                                            {result.communicationFeedback && (
+                                                <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50 p-2 rounded">
+                                                    💬 {result.communicationFeedback}
+                                                </div>
+                                            )}
+                                            {/* Total */}
+                                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600 flex justify-between items-center">
+                                                <span className="font-medium text-slate-600 dark:text-slate-300">Base Score:</span>
+                                                <span className="font-bold text-lg text-slate-900 dark:text-white">{result.scoreBreakdown.total}/100</span>
                                             </div>
                                         </div>
                                     )}

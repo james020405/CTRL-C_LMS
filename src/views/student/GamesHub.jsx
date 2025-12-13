@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import {
     Gamepad2, Target, FileText, Wrench, Puzzle,
-    Trophy, ArrowRight, Sparkles
+    Trophy, ArrowRight, Sparkles, Search
 } from 'lucide-react';
 
 const games = [
@@ -56,6 +56,16 @@ const games = [
         bgColor: 'bg-orange-500/10',
         textColor: 'text-orange-500',
         route: '/student/chain-reaction',
+    },
+    {
+        id: 'technician-detective',
+        title: 'Technician Detective',
+        description: 'Diagnose vehicle problems using diagnostic tests and deduction skills.',
+        icon: Search,
+        color: 'from-cyan-500 to-blue-500',
+        bgColor: 'bg-cyan-500/10',
+        textColor: 'text-cyan-500',
+        route: '/student/technician-detective',
     },
 ];
 

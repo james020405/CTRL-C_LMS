@@ -246,7 +246,9 @@ Return ONLY this JSON (no markdown):
     "dialogue_start": "Opening line with Filipino expressions",
     "technicianReport": "Initial inspection findings from the mechanic",
     "actualProblem": "The real technical issue",
-    "correctParts": ["part1", "part2", "part3"]
+    "correctParts": ["part1", "part2", "part3"],
+    "idealEstimateRange": { "min": realistic_min_price, "max": realistic_max_price },
+    "recommendedLaborHours": realistic_hours_as_number
 }
     `;
 
@@ -282,22 +284,22 @@ Return ONLY this JSON (no markdown):
 
 const FALLBACK_CUSTOMERS = {
     easy: [
-        { name: "Tita Marie", vehicle: "2020 Toyota Fortuner", complaint: "Oil change reminder light on", mood: "Friendly", budget: 25000, dialogue_start: "Hi! I think it's time for my regular service. Magkano po?", technicianReport: "Vehicle due for 40,000km service. Oil is dark and at minimum level. Air filter visibly dirty. Recommend full service.", actualProblem: "Vehicle is due for scheduled maintenance - oil change and filter replacement needed", correctParts: ["Engine Oil (6L)", "Oil Filter", "Air Filter"] },
-        { name: "Kuya James", vehicle: "2019 Honda CR-V", complaint: "Aircon not cold enough", mood: "Clueless", budget: 30000, dialogue_start: "Hindi na malamig yung aircon, pero okay lang kahit magkano, basta maayos.", technicianReport: "AC system low on refrigerant. Found dye traces at compressor seal. Evaporator temp reading 18°C (should be 4-7°C). Needs recharge and seal replacement.", actualProblem: "Low refrigerant due to minor leak in AC system, needs recharge and leak repair", correctParts: ["R134a Refrigerant", "AC O-Rings", "AC Compressor Seal"] },
-        { name: "Ate Lina", vehicle: "2021 Mitsubishi Xpander", complaint: "Brake pedal feels soft", mood: "Friendly", budget: 28000, dialogue_start: "Kuya, parang malambot na yung brake ko, patingin naman.", technicianReport: "Brake fluid dark/contaminated. Air in brake lines. Master cylinder shows minor seepage. Brake pads at 60% life remaining.", actualProblem: "Brake fluid contaminated and needs bleeding, master cylinder seals starting to wear", correctParts: ["Brake Fluid (DOT4)", "Brake Bleeding Service", "Master Cylinder Seal Kit"] },
-        { name: "Sir Jun", vehicle: "2018 Toyota Hilux", complaint: "Car won't start sometimes", mood: "Clueless", budget: 35000, dialogue_start: "Minsan lang naman siya ayaw mag-start, pero pag umulit ulit okay na.", technicianReport: "Battery load test: 380 CCA (rated 600 CCA) - FAIL. Terminals corroded with white buildup. Charging system OK at 14.2V.", actualProblem: "Weak battery and corroded terminals causing intermittent starting issues", correctParts: ["Car Battery (75AH)", "Battery Terminals", "Battery Hold-Down"] }
+        { name: "Tita Marie", vehicle: "2020 Toyota Fortuner", complaint: "Oil change reminder light on", mood: "Friendly", budget: 25000, dialogue_start: "Hi! I think it's time for my regular service. Magkano po?", technicianReport: "Vehicle due for 40,000km service. Oil is dark and at minimum level. Air filter visibly dirty. Recommend full service.", actualProblem: "Vehicle is due for scheduled maintenance - oil change and filter replacement needed", correctParts: ["Engine Oil (6L)", "Oil Filter", "Air Filter"], idealEstimateRange: { min: 8000, max: 15000 }, recommendedLaborHours: 1.5 },
+        { name: "Kuya James", vehicle: "2019 Honda CR-V", complaint: "Aircon not cold enough", mood: "Clueless", budget: 30000, dialogue_start: "Hindi na malamig yung aircon, pero okay lang kahit magkano, basta maayos.", technicianReport: "AC system low on refrigerant. Found dye traces at compressor seal. Evaporator temp reading 18°C (should be 4-7°C). Needs recharge and seal replacement.", actualProblem: "Low refrigerant due to minor leak in AC system, needs recharge and leak repair", correctParts: ["R134a Refrigerant", "AC O-Rings", "AC Compressor Seal"], idealEstimateRange: { min: 12000, max: 22000 }, recommendedLaborHours: 2.5 },
+        { name: "Ate Lina", vehicle: "2021 Mitsubishi Xpander", complaint: "Brake pedal feels soft", mood: "Friendly", budget: 28000, dialogue_start: "Kuya, parang malambot na yung brake ko, patingin naman.", technicianReport: "Brake fluid dark/contaminated. Air in brake lines. Master cylinder shows minor seepage. Brake pads at 60% life remaining.", actualProblem: "Brake fluid contaminated and needs bleeding, master cylinder seals starting to wear", correctParts: ["Brake Fluid (DOT4)", "Brake Bleeding Service", "Master Cylinder Seal Kit"], idealEstimateRange: { min: 8000, max: 18000 }, recommendedLaborHours: 2.0 },
+        { name: "Sir Jun", vehicle: "2018 Toyota Hilux", complaint: "Car won't start sometimes", mood: "Clueless", budget: 35000, dialogue_start: "Minsan lang naman siya ayaw mag-start, pero pag umulit ulit okay na.", technicianReport: "Battery load test: 380 CCA (rated 600 CCA) - FAIL. Terminals corroded with white buildup. Charging system OK at 14.2V.", actualProblem: "Weak battery and corroded terminals causing intermittent starting issues", correctParts: ["Car Battery (75AH)", "Battery Terminals", "Battery Hold-Down"], idealEstimateRange: { min: 10000, max: 20000 }, recommendedLaborHours: 1.0 }
     ],
     medium: [
-        { name: "Aling Rosa", vehicle: "2018 Toyota Innova", complaint: "May warning light na orange", mood: "Impatient", budget: 15000, dialogue_start: "Kailangan ko 'to today ha, at wag naman masyadong mahal!", technicianReport: "Check engine light on. Code P0101 - MAF sensor performance. Air intake system needs inspection.", actualProblem: "Faulty mass airflow sensor causing check engine light and poor fuel economy", correctParts: ["Mass Airflow Sensor", "Air Filter", "Throttle Body Cleaning"] },
-        { name: "College Student", vehicle: "2010 Honda City", complaint: "Check engine light on", mood: "Clueless", budget: 20000, dialogue_start: "May ilaw po na nag-on? Masama po ba yun?", technicianReport: "OBD scan shows P0135 - O2 sensor heater circuit. Fuel trim readings abnormal. Suggest fuel system inspection.", actualProblem: "Faulty oxygen sensor causing check engine light, affecting fuel economy", correctParts: ["Oxygen Sensor", "Spark Plugs"] },
-        { name: "Kuya Bert", vehicle: "2015 Hyundai Accent", complaint: "Mahina yung headlights", mood: "Impatient", budget: 12000, dialogue_start: "Grabe ang dilim ng ilaw, halos di na makita gabi.", technicianReport: "Charging system voltage low at 12.8V with engine running (should be 13.5-14.5V). Belt appears glazed. Electrical system under investigation.", actualProblem: "Dimming headlights due to failing alternator not charging properly", correctParts: ["Alternator", "Drive Belt", "Headlight Bulbs"] },
-        { name: "Tito Danny", vehicle: "2017 Nissan Navara", complaint: "Rough idle pag naka-aircon", mood: "Clueless", budget: 18000, dialogue_start: "Kapag naka-on yung aircon parang nagvivibrate yung sasakyan.", technicianReport: "Engine idle drops to 500 RPM with AC on (spec: 700-800 RPM). Throttle body carbon buildup visible. Ignition system due for service.", actualProblem: "Dirty throttle body and worn spark plugs causing rough idle under load", correctParts: ["Spark Plugs (Set)", "Throttle Body Cleaning", "Idle Air Control Valve"] }
+        { name: "Aling Rosa", vehicle: "2018 Toyota Innova", complaint: "May warning light na orange", mood: "Impatient", budget: 15000, dialogue_start: "Kailangan ko 'to today ha, at wag naman masyadong mahal!", technicianReport: "Check engine light on. Code P0101 - MAF sensor performance. Air intake system needs inspection.", actualProblem: "Faulty mass airflow sensor causing check engine light and poor fuel economy", correctParts: ["Mass Airflow Sensor", "Air Filter", "Throttle Body Cleaning"], idealEstimateRange: { min: 8000, max: 13000 }, recommendedLaborHours: 1.5 },
+        { name: "College Student", vehicle: "2010 Honda City", complaint: "Check engine light on", mood: "Clueless", budget: 20000, dialogue_start: "May ilaw po na nag-on? Masama po ba yun?", technicianReport: "OBD scan shows P0135 - O2 sensor heater circuit. Fuel trim readings abnormal. Suggest fuel system inspection.", actualProblem: "Faulty oxygen sensor causing check engine light, affecting fuel economy", correctParts: ["Oxygen Sensor", "Spark Plugs"], idealEstimateRange: { min: 8000, max: 15000 }, recommendedLaborHours: 1.5 },
+        { name: "Kuya Bert", vehicle: "2015 Hyundai Accent", complaint: "Mahina yung headlights", mood: "Impatient", budget: 12000, dialogue_start: "Grabe ang dilim ng ilaw, halos di na makita gabi.", technicianReport: "Charging system voltage low at 12.8V with engine running (should be 13.5-14.5V). Belt appears glazed. Electrical system under investigation.", actualProblem: "Dimming headlights due to failing alternator not charging properly", correctParts: ["Alternator", "Drive Belt", "Headlight Bulbs"], idealEstimateRange: { min: 6000, max: 10000 }, recommendedLaborHours: 2.0 },
+        { name: "Tito Danny", vehicle: "2017 Nissan Navara", complaint: "Rough idle pag naka-aircon", mood: "Clueless", budget: 18000, dialogue_start: "Kapag naka-on yung aircon parang nagvivibrate yung sasakyan.", technicianReport: "Engine idle drops to 500 RPM with AC on (spec: 700-800 RPM). Throttle body carbon buildup visible. Ignition system due for service.", actualProblem: "Dirty throttle body and worn spark plugs causing rough idle under load", correctParts: ["Spark Plugs (Set)", "Throttle Body Cleaning", "Idle Air Control Valve"], idealEstimateRange: { min: 8000, max: 14000 }, recommendedLaborHours: 2.0 }
     ],
     hard: [
-        { name: "Mang Tomas", vehicle: "1995 Mitsubishi L300", complaint: "Hindi maganda ang takbo", mood: "Suspicious", budget: 8000, dialogue_start: "Wag mo akong lolokohin, alam ko ang kotse. Tignan mo muna bago presyuhan.", technicianReport: "Engine running rough. Multiple possible causes - could be ignition, fuel delivery, or compression. Further diagnosis needed.", actualProblem: "Multiple worn ignition components causing misfires and power loss", correctParts: ["Ignition Coil", "Spark Plugs", "Ignition Wires"] },
-        { name: "Angry Kuya", vehicle: "2008 Toyota Vios", complaint: "Something wrong, I don't know", mood: "Angry", budget: 6000, dialogue_start: "Kanina pa 'to nagpoproblema! Dapat libre 'to kasi dito ko rin pinaayos last time!", technicianReport: "Vibration noted at idle. NVH concerns. Could be drivetrain, engine, or mounting related. Road test inconclusive.", actualProblem: "Worn engine mounts causing vibration and rough idle", correctParts: ["Engine Mount (Front)", "Engine Mount (Rear)"] },
-        { name: "Ate Nene", vehicle: "2012 Suzuki Ertiga", complaint: "Umiingay kapag lumiliko", mood: "Suspicious", budget: 10000, dialogue_start: "Kanina pa ako nagpunta sa ibang shop, ang mahal daw. Totoo ba yun?", technicianReport: "Noise when turning - could be CV joints, power steering, wheel bearings, or suspension. Steering system requires inspection.", actualProblem: "Worn CV joint boots and low power steering fluid causing noise when turning", correctParts: ["CV Joint Boot Kit", "Power Steering Fluid", "Tie Rod Ends"] },
-        { name: "Boss Eddie", vehicle: "2005 Toyota Hi-Ace", complaint: "Ang gastos ng gasolina", mood: "Angry", budget: 7000, dialogue_start: "Bakit ang dami kong gastos sa gas? May problema ba?", technicianReport: "Fuel consumption higher than normal. No codes stored. Possible causes: fuel system, air intake, ignition, or driving habits.", actualProblem: "Clogged fuel injectors and dirty air filter reducing fuel efficiency", correctParts: ["Fuel Injector Cleaning", "Air Filter", "Fuel Filter"] }
+        { name: "Mang Tomas", vehicle: "1995 Mitsubishi L300", complaint: "Hindi maganda ang takbo", mood: "Suspicious", budget: 8000, dialogue_start: "Wag mo akong lolokohin, alam ko ang kotse. Tignan mo muna bago presyuhan.", technicianReport: "Engine running rough. Multiple possible causes - could be ignition, fuel delivery, or compression. Further diagnosis needed.", actualProblem: "Multiple worn ignition components causing misfires and power loss", correctParts: ["Ignition Coil", "Spark Plugs", "Ignition Wires"], idealEstimateRange: { min: 4000, max: 7000 }, recommendedLaborHours: 2.5 },
+        { name: "Angry Kuya", vehicle: "2008 Toyota Vios", complaint: "Something wrong, I don't know", mood: "Angry", budget: 6000, dialogue_start: "Kanina pa 'to nagpoproblema! Dapat libre 'to kasi dito ko rin pinaayos last time!", technicianReport: "Vibration noted at idle. NVH concerns. Could be drivetrain, engine, or mounting related. Road test inconclusive.", actualProblem: "Worn engine mounts causing vibration and rough idle", correctParts: ["Engine Mount (Front)", "Engine Mount (Rear)"], idealEstimateRange: { min: 3000, max: 5500 }, recommendedLaborHours: 3.0 },
+        { name: "Ate Nene", vehicle: "2012 Suzuki Ertiga", complaint: "Umiingay kapag lumiliko", mood: "Suspicious", budget: 10000, dialogue_start: "Kanina pa ako nagpunta sa ibang shop, ang mahal daw. Totoo ba yun?", technicianReport: "Noise when turning - could be CV joints, power steering, wheel bearings, or suspension. Steering system requires inspection.", actualProblem: "Worn CV joint boots and low power steering fluid causing noise when turning", correctParts: ["CV Joint Boot Kit", "Power Steering Fluid", "Tie Rod Ends"], idealEstimateRange: { min: 5000, max: 9000 }, recommendedLaborHours: 3.0 },
+        { name: "Boss Eddie", vehicle: "2005 Toyota Hi-Ace", complaint: "Ang gastos ng gasolina", mood: "Angry", budget: 7000, dialogue_start: "Bakit ang dami kong gastos sa gas? May problema ba?", technicianReport: "Fuel consumption higher than normal. No codes stored. Possible causes: fuel system, air intake, ignition, or driving habits.", actualProblem: "Clogged fuel injectors and dirty air filter reducing fuel efficiency", correctParts: ["Fuel Injector Cleaning", "Air Filter", "Fuel Filter"], idealEstimateRange: { min: 3500, max: 6000 }, recommendedLaborHours: 1.5 }
     ]
 };
 
@@ -307,6 +309,11 @@ const getFallbackServiceCustomer = (difficulty = 'easy') => {
 };
 
 export const evaluateEstimate = async (customer, estimate, notes) => {
+    // Calculate ideal estimate if not provided
+    const idealMin = customer.idealEstimateRange?.min || customer.budget * 0.3;
+    const idealMax = customer.idealEstimateRange?.max || customer.budget * 0.9;
+    const idealMid = (idealMin + idealMax) / 2;
+
     const prompt = `
 You are a Filipino customer at an auto repair shop. Respond IN CHARACTER.
 
@@ -315,7 +322,9 @@ YOUR INFO:
 - Vehicle: ${customer.vehicle}  
 - Problem: ${customer.complaint}
 - Mood: ${customer.mood}
-- Maximum Budget: ₱${customer.budget} (This is the MOST you can afford. You will reject anything above this.)
+- Maximum Budget: ₱${customer.budget}
+
+REALISTIC PRICE RANGE FOR THIS REPAIR: ₱${idealMin.toLocaleString()} - ₱${idealMax.toLocaleString()}
 
 THE ESTIMATE:
 - Total: ₱${estimate.grandTotal.toFixed(2)}
@@ -323,21 +332,33 @@ THE ESTIMATE:
 - Labor: ₱${estimate.laborTotal.toFixed(2)}
 
 SERVICE WRITER'S EXPLANATION:
-"${notes}"
+"${notes || 'No explanation provided'}"
 
 DECISION RULES:
-1. If total ≤ budget AND explanation is good → "Accepted"
-2. If total is slightly over budget (within 20%) → "Negotiated" 
-3. If total > budget OR explanation is bad/rude → "Rejected"
-4. Mood affects tolerance: Friendly=forgiving, Angry=strict, Suspicious=needs convincing
+1. If total is UNREALISTICALLY LOW (below ₱${idealMin}) → "Suspicious" (customer wonders why so cheap)
+2. If total is within realistic range AND explanation is professional → "Accepted"
+3. If total is slightly high (up to 20% over budget) with good explanation → "Negotiated"
+4. If total > budget OR explanation is bad/rude OR price suspiciously low → "Rejected"
+
+COMMUNICATION QUALITY - Rate 0-100:
+- 0: Gibberish, random letters, nonsense, unrelated text, or insults
+- 10-30: No explanation OR completely unhelpful  
+- 40-60: Basic explanation, somewhat relevant to the repair
+- 70-85: Good explanation with technical details about the repair
+- 90-100: Excellent - explains repair clearly, uses proper automotive terms, addresses customer concerns
+
+IMPORTANT: If the explanation is gibberish (like 'asdfgh', 'bobobo', random letters, or nonsense words), score it 0 immediately.
 
 Return ONLY this JSON (no extra text):
 {
-  "outcome": "Accepted" or "Negotiated" or "Rejected",
+  "outcome": "Accepted" or "Negotiated" or "Rejected" or "Suspicious",
   "message": "Your response in Taglish (1-2 sentences, stay in character based on mood)",
   "feedback": "What the service writer did right or wrong",
-  "correctApproach": "If not accepted: what should they have quoted (must be ≤ ₱${customer.budget})? If accepted: null",
-  "idealEstimate": If not accepted: number ≤ ${customer.budget}. If accepted: null
+  "communicationScore": 0-100,
+  "communicationFeedback": "Why this score - what was good/missing in the explanation",
+  "priceReasonable": true/false,
+  "correctApproach": "If not accepted: what should they have done? If accepted: null",
+  "idealEstimate": If not accepted: number between ${idealMin} and ${idealMax}. If accepted: null
 }
     `;
 
@@ -366,10 +387,15 @@ Return ONLY this JSON (no extra text):
 
     // Fall back to static evaluation
     console.log("📋 Using fallback evaluation");
-    return getFallbackEvaluation(customer, estimate);
+    return getFallbackEvaluation(customer, estimate, notes);
 };
 
-const getFallbackEvaluation = (customer, estimate) => {
+const getFallbackEvaluation = (customer, estimate, notes = '') => {
+    // Calculate ideal estimate range
+    const idealMin = customer.idealEstimateRange?.min || customer.budget * 0.3;
+    const idealMax = customer.idealEstimateRange?.max || customer.budget * 0.9;
+    const idealMid = (idealMin + idealMax) / 2;
+
     // Reject empty estimates - must have parts or labor
     const hasParts = estimate.partsTotal > 0 || (estimate.parts && estimate.parts.length > 0);
     const hasLabor = estimate.laborTotal > 0;
@@ -379,8 +405,11 @@ const getFallbackEvaluation = (customer, estimate) => {
             outcome: 'Rejected',
             message: "Ano 'to? Walang laman! Saan yung estimate mo?",
             feedback: "You submitted an empty estimate with no parts or labor. You must provide a proper repair estimate.",
+            communicationScore: 0,
+            communicationFeedback: "No estimate provided at all.",
+            priceReasonable: false,
             correctApproach: `You need to add the required parts and labor for the repair. The customer has a budget of ₱${customer.budget.toLocaleString()}.`,
-            idealEstimate: Math.round(customer.budget * 0.8)
+            idealEstimate: Math.round(idealMid)
         };
     }
 
@@ -389,35 +418,111 @@ const getFallbackEvaluation = (customer, estimate) => {
             outcome: 'Rejected',
             message: "Zero pesos? Libre ba 'to? Hindi ka seryoso!",
             feedback: "Your estimate total is zero. You must provide realistic pricing for parts and labor.",
-            correctApproach: `Create a proper estimate with realistic prices. The customer's budget is ₱${customer.budget.toLocaleString()}.`,
-            idealEstimate: Math.round(customer.budget * 0.8)
+            communicationScore: 0,
+            communicationFeedback: "Zero price is not a valid estimate.",
+            priceReasonable: false,
+            correctApproach: `Create a proper estimate with realistic prices. Should be between ₱${idealMin.toLocaleString()} - ₱${idealMax.toLocaleString()}.`,
+            idealEstimate: Math.round(idealMid)
         };
     }
 
-    // Simple logic fallback - now only runs if estimate has content
-    if (estimate.grandTotal <= customer.budget) {
+    // Calculate communication score based on notes
+    let communicationScore = 0; // Default to 0
+    let communicationFeedback = "No explanation provided to the customer.";
+
+    if (notes && notes.trim().length > 0) {
+        const noteText = notes.trim();
+        const noteLength = noteText.length;
+
+        // Gibberish detection - check for repeated characters or no real words
+        const hasRepeatedChars = /(.)(\1{3,})/i.test(noteText); // 4+ same char in a row
+        const hasOnlyRandomChars = !/[aeiou]{1,3}[bcdfghjklmnpqrstvwxyz]/i.test(noteText); // No consonant-vowel patterns
+        const wordCount = noteText.split(/\s+/).filter(w => w.length > 2).length;
+        const avgWordLength = noteText.replace(/\s/g, '').length / Math.max(wordCount, 1);
+        const hasRealWords = /\b(the|and|for|you|your|will|need|replace|repair|check|brake|oil|engine|vehicle|car|part|cost|price|thank|sir|maam|po|lang|na|ng|ang|sa|ay|naman)\b/i.test(noteText);
+
+        // If looks like gibberish, score 0
+        if (hasRepeatedChars || (wordCount < 3 && !hasRealWords) || avgWordLength > 15 || hasOnlyRandomChars) {
+            communicationScore = 0;
+            communicationFeedback = "Invalid explanation - appears to be gibberish or random text.";
+        } else {
+            // Now check for quality
+            const hasKeywords = /repair|replace|fix|check|issue|problem|part|labor|hour|cost|price|thank|please|sir|ma'?am|po|maintain|safety/i.test(noteText);
+            const hasTechnicalTerms = /brake|oil|filter|battery|engine|transmission|coolant|fluid|sensor|belt|gasket|rotor|pad|alternator|starter|compressor/i.test(noteText);
+
+            if (noteLength > 80 && hasKeywords && hasTechnicalTerms) {
+                communicationScore = 85;
+                communicationFeedback = "Excellent explanation with technical details and professional tone.";
+            } else if (noteLength > 40 && (hasKeywords || hasTechnicalTerms)) {
+                communicationScore = 65;
+                communicationFeedback = "Good explanation. Consider adding more technical details.";
+            } else if (noteLength > 20 && hasRealWords) {
+                communicationScore = 45;
+                communicationFeedback = "Basic explanation provided. Could be more detailed and professional.";
+            } else if (hasRealWords) {
+                communicationScore = 25;
+                communicationFeedback = "Very brief explanation. Customers appreciate more detail about the repair.";
+            } else {
+                communicationScore = 0;
+                communicationFeedback = "Explanation doesn't contain relevant repair information.";
+            }
+        }
+    }
+
+    // Check if price is unrealistically low (SUSPICIOUS)
+    if (estimate.grandTotal < idealMin * 0.5) {
+        return {
+            outcome: 'Suspicious',
+            message: "Ang mura naman nito... totoo ba 'to? Baka mamaya may problema pa!",
+            feedback: "Your estimate is suspiciously low. This makes customers distrust the quality of repair.",
+            communicationScore,
+            communicationFeedback,
+            priceReasonable: false,
+            correctApproach: `A realistic estimate for this repair should be between ₱${idealMin.toLocaleString()} - ₱${idealMax.toLocaleString()}. Too low prices make customers suspicious.`,
+            idealEstimate: Math.round(idealMid)
+        };
+    }
+
+    // Check if price is within reasonable range
+    const priceReasonable = estimate.grandTotal >= idealMin && estimate.grandTotal <= customer.budget;
+
+    // Evaluate based on price vs budget and ideal range
+    if (estimate.grandTotal >= idealMin && estimate.grandTotal <= customer.budget) {
         return {
             outcome: 'Accepted',
-            message: "That sounds reasonable. Go ahead.",
-            feedback: "Good job staying within budget.",
+            message: communicationScore >= 60
+                ? "Sige, okay yan. Maayos naman ang explanation mo."
+                : "Ay, okay naman ang presyo. Go na.",
+            feedback: priceReasonable
+                ? "Good job with realistic pricing within the customer's budget."
+                : "Price is acceptable, though consider improving your explanation.",
+            communicationScore,
+            communicationFeedback,
+            priceReasonable: true,
             correctApproach: null,
             idealEstimate: null
         };
     } else if (estimate.grandTotal <= customer.budget * 1.2) {
         return {
             outcome: 'Negotiated',
-            message: "It's a bit high... can you do any better?",
+            message: "Medyo mahal ah... pwede bang bawasan?",
             feedback: "You were slightly over budget, but close enough to negotiate.",
-            correctApproach: `Try to stay within the customer's ₱${customer.budget.toLocaleString()} budget. Explain the value clearly and offer alternatives if needed.`,
-            idealEstimate: Math.round(customer.budget * 0.9)
+            communicationScore,
+            communicationFeedback,
+            priceReasonable: false,
+            correctApproach: `Try to stay within the customer's ₱${customer.budget.toLocaleString()} budget. A good estimate would be around ₱${Math.round(idealMid).toLocaleString()}.`,
+            idealEstimate: Math.round(idealMid)
         };
     } else {
         return {
             outcome: 'Rejected',
-            message: "No way! That's too expensive!",
+            message: "Grabe ang mahal! Hindi ko kaya yan!",
             feedback: "You significantly exceeded the customer's budget.",
-            correctApproach: `This customer has a budget of ₱${customer.budget.toLocaleString()}. You should have quoted closer to that amount and explained why each part/labor is necessary. For a ${customer.mood} customer, focus on building trust first.`,
-            idealEstimate: Math.round(customer.budget * 0.85)
+            communicationScore,
+            communicationFeedback,
+            priceReasonable: false,
+            correctApproach: `This customer has a budget of ₱${customer.budget.toLocaleString()}. A realistic estimate would be ₱${idealMin.toLocaleString()} - ₱${idealMax.toLocaleString()}.`,
+            idealEstimate: Math.round(idealMid)
         };
     }
 };
@@ -878,3 +983,317 @@ Return ONLY this JSON (no markdown):
     return getChainReactionScenario(difficulty);
 };
 
+// ============================================
+// TECHNICIAN DETECTIVE GAME FUNCTIONS
+// ============================================
+
+/**
+ * Generate a diagnostic case for Technician Detective game
+ * @param {string} difficulty - 'easy', 'medium', or 'hard'
+ * @returns {Promise<Object>} - Case object WITHOUT revealing the diagnosis
+ */
+export const generateTechnicianCase = async (difficulty = 'easy') => {
+    const vehicles = [
+        '2018 Toyota Vios', '2015 Honda City', '2020 Mitsubishi Xpander',
+        '2017 Nissan Navara', '2019 Suzuki Ertiga', '2016 Hyundai Accent',
+        '2021 Toyota Fortuner', '2014 Honda CR-V', '2012 Toyota Innova'
+    ];
+    const randomVehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
+    const randomSeed = Math.floor(Math.random() * 10000);
+
+    const difficultyGuides = {
+        easy: 'Simple single-system issue with clear symptoms. Diagnosis should be relatively straightforward.',
+        medium: 'Issue could be one of 2-3 possible causes. Requires some investigation to narrow down.',
+        hard: 'Complex issue with multiple possible causes or intermittent symptoms. Red herrings present.'
+    };
+
+    const problemTypes = {
+        easy: ['dead battery', 'worn brake pads', 'low coolant', 'dirty air filter', 'worn wiper blades'],
+        medium: ['rough idle', 'AC not cooling', 'check engine light', 'power steering noise', 'brake vibration'],
+        hard: ['intermittent stalling', 'electrical drain', 'engine misfire', 'transmission slip', 'mystery noise']
+    };
+    const randomProblem = problemTypes[difficulty][Math.floor(Math.random() * problemTypes[difficulty].length)];
+
+    const prompt = `
+You are an automotive instructor creating a DIAGNOSTIC MYSTERY for students.
+
+Vehicle: ${randomVehicle}
+Problem type hint: ${randomProblem}
+Difficulty: ${difficulty.toUpperCase()}
+${difficultyGuides[difficulty]}
+Random seed: ${randomSeed}
+
+Create a case where the student must DIAGNOSE the problem (they don't know what's wrong).
+
+Return ONLY this JSON (no markdown):
+{
+    "id": "tech-${Date.now()}",
+    "vehicle": "${randomVehicle}",
+    "customerComplaint": "Taglish description of symptoms (what customer notices, NOT the diagnosis)",
+    "initialObservations": "What the technician sees during initial visual inspection",
+    "mileage": random_km_number,
+    "actualDiagnosis": "The real problem (hidden from student until they guess)",
+    "correctParts": ["Part1", "Part2"],
+    "possibleDiagnoses": [
+        {"id": "diag1", "label": "Correct diagnosis", "isCorrect": true},
+        {"id": "diag2", "label": "Plausible wrong answer", "isCorrect": false},
+        {"id": "diag3", "label": "Another wrong answer", "isCorrect": false},
+        {"id": "diag4", "label": "Distractor", "isCorrect": false}
+    ],
+    "diagnosticHints": {
+        "battery_test": "Result if student tests battery",
+        "scan_tool": "Result if student runs diagnostic scan",
+        "visual_inspection": "Result if student does detailed visual check",
+        "fluid_check": "Result if student checks fluid levels",
+        "test_drive": "Result if student does test drive",
+        "compression_test": "Result if student tests compression",
+        "pressure_test": "Result for pressure testing"
+    },
+    "difficulty": "${difficulty}"
+}
+    `;
+
+    const processCaseData = (text) => {
+        const caseData = JSON.parse(text.replace(/```json|```/g, '').trim());
+        // Shuffle diagnoses so correct answer isn't always first
+        if (caseData.possibleDiagnoses && caseData.possibleDiagnoses.length > 0) {
+            for (let i = caseData.possibleDiagnoses.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [caseData.possibleDiagnoses[i], caseData.possibleDiagnoses[j]] =
+                    [caseData.possibleDiagnoses[j], caseData.possibleDiagnoses[i]];
+            }
+        }
+        return caseData;
+    };
+
+    // Try OpenRouter first (PRIMARY)
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Technician case generated via OpenRouter");
+            return processCaseData(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
+        }
+    }
+
+    // Try Gemini as fallback
+    if (model) {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            console.log("✅ Technician case generated via Gemini");
+            return processCaseData(response.text());
+        } catch (geminiError) {
+            console.warn("⚠️ Gemini failed:", geminiError.message);
+        }
+    }
+
+    // Fall back to static data
+    console.log("📋 Using fallback technician case");
+    return getFallbackTechnicianCase(difficulty);
+};
+
+const FALLBACK_TECHNICIAN_CASES = {
+    easy: [
+        {
+            id: "tech-fallback-1",
+            vehicle: "2019 Toyota Vios",
+            customerComplaint: "Hindi na nag-start yung sasakyan ko. Kahapon okay pa eh.",
+            initialObservations: "No visible leaks. Battery terminals have white corrosion. Headlights dim when trying to start.",
+            mileage: 45000,
+            actualDiagnosis: "Dead battery due to corroded terminals preventing proper charging",
+            correctParts: ["Car Battery", "Battery Terminals"],
+            possibleDiagnoses: [
+                { id: "diag1", label: "Dead battery / corroded terminals", isCorrect: true },
+                { id: "diag2", label: "Faulty starter motor", isCorrect: false },
+                { id: "diag3", label: "Fuel pump failure", isCorrect: false },
+                { id: "diag4", label: "Ignition switch problem", isCorrect: false }
+            ],
+            diagnosticHints: {
+                battery_test: "Battery voltage: 10.2V (should be 12.4V+). Load test FAILED - drops to 8V under load.",
+                scan_tool: "No fault codes stored. Unable to communicate - low voltage.",
+                visual_inspection: "Heavy white/green corrosion on both battery terminals. Cable ends corroded.",
+                fluid_check: "All fluids at normal levels.",
+                test_drive: "Cannot perform - vehicle won't start.",
+                compression_test: "Cannot perform - engine won't crank.",
+                pressure_test: "Cannot perform - engine won't run."
+            },
+            difficulty: "easy"
+        },
+        {
+            id: "tech-fallback-2",
+            vehicle: "2020 Honda City",
+            customerComplaint: "Yung brake ko parang nagiingay, may kalampag kapag nag-brake.",
+            initialObservations: "Wheels appear normal. No visible brake fluid leak. Slight brake dust buildup on front wheels.",
+            mileage: 38000,
+            actualDiagnosis: "Worn brake pads - metal backing contacting rotor",
+            correctParts: ["Front Brake Pads", "Brake Rotor"],
+            possibleDiagnoses: [
+                { id: "diag1", label: "Worn brake pads", isCorrect: true },
+                { id: "diag2", label: "Warped rotors", isCorrect: false },
+                { id: "diag3", label: "Stuck caliper", isCorrect: false },
+                { id: "diag4", label: "Loose wheel bearing", isCorrect: false }
+            ],
+            diagnosticHints: {
+                battery_test: "Battery good - 12.6V, passes load test.",
+                scan_tool: "No fault codes.",
+                visual_inspection: "Front brake pads worn to 1mm - metal wear indicator visible. Rotor has light scoring from metal contact.",
+                fluid_check: "Brake fluid slightly low (normal with worn pads). Fluid color dark - recommend flush.",
+                test_drive: "Grinding noise when braking. Brake pedal feels normal.",
+                compression_test: "Not applicable for this issue.",
+                pressure_test: "Brake line pressure normal."
+            },
+            difficulty: "easy"
+        }
+    ],
+    medium: [
+        {
+            id: "tech-fallback-3",
+            vehicle: "2017 Mitsubishi Montero",
+            customerComplaint: "Parang nagvivibrate yung sasakyan pag naka-idle, lalo na pag naka-aircon.",
+            initialObservations: "Engine running but rough. No warning lights. AC clutch engaging normally.",
+            mileage: 72000,
+            actualDiagnosis: "Dirty throttle body causing improper idle air flow",
+            correctParts: ["Throttle Body Cleaning", "Air Filter", "Spark Plugs"],
+            possibleDiagnoses: [
+                { id: "diag1", label: "Dirty throttle body / IAC valve", isCorrect: true },
+                { id: "diag2", label: "Failing AC compressor", isCorrect: false },
+                { id: "diag3", label: "Engine mount failure", isCorrect: false },
+                { id: "diag4", label: "Vacuum leak", isCorrect: false }
+            ],
+            diagnosticHints: {
+                battery_test: "Battery and charging system normal.",
+                scan_tool: "No stored codes. Live data shows IAC counts high at 85 (normal 25-45). MAF readings slightly low.",
+                visual_inspection: "Throttle body inlet black with carbon buildup. Air filter dirty. Spark plugs due for replacement.",
+                fluid_check: "All fluids normal levels.",
+                test_drive: "Idle drops to 500 RPM with AC on. Normal spec is 700-800 RPM.",
+                compression_test: "Compression even across all cylinders.",
+                pressure_test: "Fuel pressure within spec."
+            },
+            difficulty: "medium"
+        }
+    ],
+    hard: [
+        {
+            id: "tech-fallback-4",
+            vehicle: "2015 Toyota Innova",
+            customerComplaint: "Minsan bigla na lang namamatay, tapos pag pinastart ulit okay naman. Hindi consistent.",
+            initialObservations: "Engine starts and runs normally during inspection. No warning lights currently on.",
+            mileage: 95000,
+            actualDiagnosis: "Failing crankshaft position sensor causing intermittent signal loss",
+            correctParts: ["Crankshaft Position Sensor", "Camshaft Position Sensor"],
+            possibleDiagnoses: [
+                { id: "diag1", label: "Crankshaft position sensor failure", isCorrect: true },
+                { id: "diag2", label: "Fuel pump relay intermittent", isCorrect: false },
+                { id: "diag3", label: "Ignition coil pack failure", isCorrect: false },
+                { id: "diag4", label: "ECU malfunction", isCorrect: false }
+            ],
+            diagnosticHints: {
+                battery_test: "Battery and charging system normal.",
+                scan_tool: "History code P0335 - Crankshaft Position Sensor Circuit. Currently not active. Freeze frame shows stall at operating temperature.",
+                visual_inspection: "CKP sensor wiring appears intact. Slight oil residue near sensor. Timing belt cover shows age.",
+                fluid_check: "Oil slightly overfilled. Coolant at normal level.",
+                test_drive: "Could not replicate stalling during 15-minute test. Vehicle runs smoothly when warm.",
+                compression_test: "Compression even and within spec.",
+                pressure_test: "Fuel pressure holds steady - no drop during extended monitoring."
+            },
+            difficulty: "hard"
+        }
+    ]
+};
+
+const getFallbackTechnicianCase = (difficulty = 'easy') => {
+    const cases = FALLBACK_TECHNICIAN_CASES[difficulty] || FALLBACK_TECHNICIAN_CASES.easy;
+    return cases[Math.floor(Math.random() * cases.length)];
+};
+
+/**
+ * Run a diagnostic test and get results
+ * @param {Object} caseData - The case object
+ * @param {string} testType - Type of test to run
+ * @returns {string} - Test result
+ */
+export const runDiagnosticTest = (caseData, testType) => {
+    const testMap = {
+        'battery': 'battery_test',
+        'scan': 'scan_tool',
+        'visual': 'visual_inspection',
+        'fluids': 'fluid_check',
+        'drive': 'test_drive',
+        'compression': 'compression_test',
+        'pressure': 'pressure_test'
+    };
+
+    const mappedTest = testMap[testType] || testType;
+
+    if (caseData.diagnosticHints && caseData.diagnosticHints[mappedTest]) {
+        return caseData.diagnosticHints[mappedTest];
+    }
+
+    // Default responses for unmapped tests
+    return "Test completed - no significant findings. Consider trying a different diagnostic approach.";
+};
+
+/**
+ * Evaluate the student's diagnosis
+ * @param {Object} caseData - The case object
+ * @param {string} selectedDiagnosisId - ID of selected diagnosis
+ * @param {Array} selectedParts - Parts the student selected
+ * @param {number} testsUsed - Number of diagnostic tests used
+ * @param {number} testsAllowed - Maximum tests allowed
+ * @returns {Object} - Evaluation result with scores
+ */
+export const evaluateTechnicianDiagnosis = (caseData, selectedDiagnosisId, selectedParts = [], testsUsed = 0, testsAllowed = 3) => {
+    const selectedDiagnosis = caseData.possibleDiagnoses?.find(d => d.id === selectedDiagnosisId);
+    const correctDiagnosis = caseData.possibleDiagnoses?.find(d => d.isCorrect);
+    const isCorrect = selectedDiagnosis?.isCorrect || false;
+
+    // Calculate parts accuracy
+    const correctPartsLower = (caseData.correctParts || []).map(p => p.toLowerCase());
+    const selectedPartsLower = (selectedParts || []).map(p => p.toLowerCase());
+
+    let partsMatched = 0;
+    correctPartsLower.forEach(cp => {
+        if (selectedPartsLower.some(sp => sp.includes(cp) || cp.includes(sp))) {
+            partsMatched++;
+        }
+    });
+    const partsAccuracy = correctPartsLower.length > 0
+        ? (partsMatched / correctPartsLower.length) * 100
+        : 0;
+
+    // Calculate efficiency score (using fewer tests = better)
+    const efficiencyScore = testsAllowed > 0
+        ? Math.max(0, 100 - ((testsUsed / testsAllowed) * 50))
+        : 100;
+
+    // Calculate scores
+    const diagnosisScore = isCorrect ? 50 : 0;
+    const partsScore = Math.round((partsAccuracy / 100) * 30);
+    const efficiencyBonus = Math.round((efficiencyScore / 100) * 20);
+    const totalScore = diagnosisScore + partsScore + efficiencyBonus;
+
+    return {
+        isCorrect,
+        selectedAnswer: selectedDiagnosis?.label || 'Unknown',
+        correctAnswer: correctDiagnosis?.label || caseData.actualDiagnosis,
+        actualDiagnosis: caseData.actualDiagnosis,
+        correctParts: caseData.correctParts,
+        partsMatched,
+        partsTotal: correctPartsLower.length,
+        partsAccuracy,
+        testsUsed,
+        testsAllowed,
+        efficiencyScore,
+        scoreBreakdown: {
+            diagnosis: diagnosisScore,
+            parts: partsScore,
+            efficiency: efficiencyBonus,
+            total: totalScore
+        },
+        feedback: isCorrect
+            ? `Excellent diagnosis! You correctly identified the ${caseData.actualDiagnosis}.`
+            : `The correct diagnosis was: ${caseData.actualDiagnosis}. ${correctDiagnosis?.label || ''}`
+    };
+};

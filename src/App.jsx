@@ -23,6 +23,7 @@ const ServiceWriter = React.lazy(() => import('./views/student/ServiceWriter'));
 const CrossSystemDetective = React.lazy(() => import('./views/student/CrossSystemDetective'));
 const ToolSelectionChallenge = React.lazy(() => import('./views/student/ToolSelectionChallenge'));
 const SystemChainReaction = React.lazy(() => import('./views/student/SystemChainReaction'));
+const TechnicianDetective = React.lazy(() => import('./views/student/TechnicianDetective'));
 
 // Lazy loaded - Medium weight components
 const ProfessorDashboard = React.lazy(() => import('./views/professor/Dashboard'));
@@ -86,6 +87,7 @@ function App() {
                                     <Route path="cross-system" element={<CrossSystemDetective />} />
                                     <Route path="tool-selection" element={<ToolSelectionChallenge />} />
                                     <Route path="chain-reaction" element={<SystemChainReaction />} />
+                                    <Route path="technician-detective" element={<TechnicianDetective />} />
                                     <Route path="progress" element={<ProgressDashboard />} />
                                     <Route path="leaderboard" element={<Leaderboard />} />
                                     <Route path="profile" element={<ProfileSettings />} />
