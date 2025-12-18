@@ -16,7 +16,7 @@ import {
 export default function ProfileSettings() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const { toast } = useToast();
+    const toast = useToast();
 
     // Profile State
     const [profile, setProfile] = useState(null);
@@ -29,6 +29,9 @@ export default function ProfileSettings() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
+    const [passwordVerified, setPasswordVerified] = useState(false);
+    const [verifyingPassword, setVerifyingPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
 
     // Delete Account State
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -135,34 +138,17 @@ export default function ProfileSettings() {
         }
     };
 
-    const handleChangePassword = async (e) => {
-        e.preventDefault();
-
-        // Validate current password is provided
+    // Step 1: Verify current password
+    const handleVerifyPassword = async () => {
         if (!currentPassword) {
-            toast.error('Please enter your current password.');
+            setPasswordError('Please enter your current password.');
             return;
         }
 
-        if (newPassword.length < 6) {
-            toast.error('New password must be at least 6 characters.');
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            toast.error('Passwords do not match.');
-            return;
-        }
-
-        if (currentPassword === newPassword) {
-            toast.error('New password must be different from current password.');
-            return;
-        }
-
-        setChangingPassword(true);
+        setVerifyingPassword(true);
+        setPasswordError('');
 
         try {
-            // First, verify current password by re-authenticating
             const { error: authError } = await supabase.auth.signInWithPassword({
                 email: user.email,
                 password: currentPassword
@@ -172,7 +158,47 @@ export default function ProfileSettings() {
                 throw new Error('Current password is incorrect.');
             }
 
-            // If verification passed, update to new password
+            setPasswordVerified(true);
+            toast.success('Password verified! You can now set a new password.');
+        } catch (err) {
+            setPasswordError(err.message);
+            toast.error(err.message);
+        } finally {
+            setVerifyingPassword(false);
+        }
+    };
+
+    // Step 2: Change to new password (only after verification)
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
+
+        if (!passwordVerified) {
+            setPasswordError('Please verify your current password first.');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            setPasswordError('New password must be at least 6 characters.');
+            toast.error('New password must be at least 6 characters.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Passwords do not match.');
+            toast.error('Passwords do not match.');
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            setPasswordError('New password must be different from current password.');
+            toast.error('New password must be different from current password.');
+            return;
+        }
+
+        setChangingPassword(true);
+
+        try {
             const { error } = await supabase.auth.updateUser({
                 password: newPassword
             });
@@ -180,14 +206,27 @@ export default function ProfileSettings() {
             if (error) throw error;
 
             toast.success('Password changed successfully!');
+            // Reset all password fields and state
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
+            setPasswordVerified(false);
+            setPasswordError('');
         } catch (err) {
+            setPasswordError(err.message);
             toast.error(err.message);
         } finally {
             setChangingPassword(false);
         }
+    };
+
+    // Cancel password change and reset
+    const handleCancelPasswordChange = () => {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordVerified(false);
+        setPasswordError('');
     };
 
     const handleDeleteClick = () => {
@@ -319,62 +358,103 @@ export default function ProfileSettings() {
                             Change Password
                         </h2>
 
-                        <form onSubmit={handleChangePassword} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Current Password
-                                </label>
-                                <Input
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                    placeholder="Enter current password"
-                                    className="w-full"
-                                />
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                    For security, please verify your current password
-                                </p>
+                        {/* Error Display */}
+                        {passwordError && (
+                            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
+                                <AlertCircle size={16} />
+                                {passwordError}
                             </div>
+                        )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    New Password
-                                </label>
-                                <Input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Enter new password"
-                                    className="w-full"
-                                />
+                        {/* Verify Current Password */}
+                        {!passwordVerified ? (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Current Password
+                                    </label>
+                                    <Input
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        placeholder="Enter your current password"
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    onClick={handleVerifyPassword}
+                                    disabled={verifyingPassword || !currentPassword}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    {verifyingPassword ? (
+                                        <Loader2 className="animate-spin mr-2" size={16} />
+                                    ) : (
+                                        <Shield size={16} className="mr-2" />
+                                    )}
+                                    Verify Password
+                                </Button>
                             </div>
+                        ) : (
+                            /* Enter New Password */
+                            <form onSubmit={handleChangePassword} className="space-y-4">
+                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 flex items-center gap-2">
+                                    <CheckCircle size={18} className="text-green-600" />
+                                    <p className="text-sm text-green-700 dark:text-green-300 font-medium">Password Verified</p>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                    Confirm New Password
-                                </label>
-                                <Input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Confirm new password"
-                                    className="w-full"
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        New Password
+                                    </label>
+                                    <Input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Enter new password (min 6 characters)"
+                                        className="w-full"
+                                        minLength={6}
+                                    />
+                                </div>
 
-                            <Button
-                                type="submit"
-                                disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-                                className="bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white"
-                            >
-                                {changingPassword ? (
-                                    <Loader2 className="animate-spin mr-2" size={16} />
-                                ) : (
-                                    <Lock size={16} className="mr-2" />
-                                )}
-                                Update Password
-                            </Button>
-                        </form>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        Confirm New Password
+                                    </label>
+                                    <Input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Confirm new password"
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleCancelPasswordChange}
+                                        className="flex-1"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={changingPassword || !newPassword || !confirmPassword}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                        {changingPassword ? (
+                                            <Loader2 className="animate-spin mr-2" size={16} />
+                                        ) : (
+                                            <CheckCircle size={16} className="mr-2" />
+                                        )}
+                                        Update Password
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
                     </Card>
 
                     {/* Danger Zone */}
