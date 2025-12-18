@@ -17,7 +17,16 @@ export const AuthProvider = ({ children }) => {
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth event:', event);
+
+            // Handle password recovery - redirect to reset password page
+            if (event === 'PASSWORD_RECOVERY') {
+                console.log('Password recovery detected, redirecting to /reset-password');
+                window.location.href = '/reset-password';
+                return;
+            }
+
             setUser(session?.user ?? null);
             setLoading(false);
         });

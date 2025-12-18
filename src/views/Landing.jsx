@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Award, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -7,9 +7,45 @@ import { Header } from '../components/Header';
 import { GooeyText } from '../components/ui/GooeyText';
 import { AuroraBackground } from '../components/ui/aurora-background';
 import { Button as MovingButton } from '../components/ui/moving-border';
+import { supabase } from '../lib/supabase';
 
 export default function Landing() {
     const navigate = useNavigate();
+
+    // Handle Supabase auth redirects (password recovery, email confirmation)
+    useEffect(() => {
+        // Check if there's a hash in the URL (tokens from Supabase)
+        if (window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const type = hashParams.get('type');
+            const error = hashParams.get('error');
+            const errorCode = hashParams.get('error_code');
+
+            console.log('Landing: Hash detected', { type, error, errorCode });
+
+            // If this is a recovery (password reset) flow, redirect to reset-password
+            if (type === 'recovery') {
+                navigate('/reset-password' + window.location.hash, { replace: true });
+                return;
+            }
+
+            // If there's an auth error, redirect to login with error info
+            if (error) {
+                navigate('/login' + window.location.hash, { replace: true });
+                return;
+            }
+        }
+
+        // Listen for PASSWORD_RECOVERY event
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Landing: Auth event', event);
+            if (event === 'PASSWORD_RECOVERY') {
+                navigate('/reset-password', { replace: true });
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [navigate]);
 
     const scrollToAccess = () => {
         document.getElementById('access-portal').scrollIntoView({ behavior: 'smooth' });
