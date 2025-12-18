@@ -66,7 +66,8 @@ export default function StudentInsights() {
                 const studentPlays = plays.filter(p => p.user_id === profile.id);
 
                 const totalPoints = studentScores.reduce((sum, s) => sum + (s.score || 0), 0);
-                const gamesPlayed = studentPlays.length;
+                // Fallback to counting scores if plays table is empty (backwards compatibility)
+                const gamesPlayed = studentPlays.length > 0 ? studentPlays.length : studentScores.length;
 
                 // Get best game
                 const gamePoints = {};
@@ -112,7 +113,9 @@ export default function StudentInsights() {
                 const avgScore = gameScores.length > 0
                     ? Math.round(gameScores.reduce((sum, s) => sum + s.score, 0) / gameScores.length)
                     : 0;
-                const playCount = plays.filter(p => p.game_type === gameType).length;
+                // Fallback: if no plays tracked, use score count
+                const gamePlays = plays.filter(p => p.game_type === gameType);
+                const playCount = gamePlays.length > 0 ? gamePlays.length : gameScores.length;
                 const uniquePlayers = new Set(gameScores.map(s => s.user_id)).size;
 
                 gameStatsData[gameType] = {

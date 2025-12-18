@@ -89,6 +89,7 @@ export const submitScore = async (userId, gameType, difficulty, score) => {
     }
 
     try {
+        // Insert into game_scores
         const { data, error } = await supabase
             .from('game_scores')
             .insert({
@@ -105,6 +106,22 @@ export const submitScore = async (userId, gameType, difficulty, score) => {
         }
 
         console.log('submitScore success:', data);
+
+        // Also insert into game_plays for professor tracking
+        try {
+            await supabase
+                .from('game_plays')
+                .insert({
+                    user_id: userId,
+                    game_type: gameType,
+                    difficulty: difficulty
+                });
+            console.log('game_plays recorded successfully');
+        } catch (playError) {
+            // Log but don't fail if game_plays insert fails
+            console.warn('game_plays insert failed (non-critical):', playError);
+        }
+
         return true;
     } catch (error) {
         console.error('Error submitting score:', error);

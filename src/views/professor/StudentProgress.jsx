@@ -98,8 +98,9 @@ export default function StudentProgress() {
                 // Total points
                 const totalPoints = studentScores.reduce((sum, s) => sum + (s.score || 0), 0);
 
-                // Games played
-                const gamesPlayed = studentPlays.length;
+                // Games played - use plays table, but fallback to scores count if plays is empty
+                // This handles cases where game_plays wasn't being populated before the fix
+                const gamesPlayed = studentPlays.length > 0 ? studentPlays.length : studentScores.length;
 
                 // Breakdown by game
                 const gameBreakdown = {};
