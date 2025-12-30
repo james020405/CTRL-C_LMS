@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Skeleton, StatsGridSkeleton, InsightsCardSkeleton } from '../../components/ui/Skeleton';
 import {
     Sparkles, TrendingUp, TrendingDown, Users, Trophy,
     AlertCircle, Lightbulb, BarChart3, Target, Zap,
@@ -37,26 +38,65 @@ export default function StudentInsights() {
         setError('');
 
         try {
-            // Get all student profiles
+            // Get current professor's ID
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) throw new Error('Not authenticated');
+
+            // Get professor's courses
+            const { data: courses, error: coursesError } = await supabase
+                .from('courses')
+                .select('id')
+                .eq('professor_id', authUser.id);
+
+            if (coursesError) throw coursesError;
+
+            if (!courses || courses.length === 0) {
+                setStudents([]);
+                setGameStats({});
+                setLoading(false);
+                return;
+            }
+
+            const courseIds = courses.map(c => c.id);
+
+            // Get enrolled student IDs
+            const { data: enrollments } = await supabase
+                .from('course_enrollments')
+                .select('user_id')
+                .in('course_id', courseIds);
+
+            const enrolledUserIds = [...new Set(enrollments?.map(e => e.user_id) || [])];
+
+            if (enrolledUserIds.length === 0) {
+                setStudents([]);
+                setGameStats({});
+                setLoading(false);
+                return;
+            }
+
+            // Get enrolled student profiles
             const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
-                .select('id, full_name, email, role');
+                .select('id, full_name, email, role')
+                .in('id', enrolledUserIds);
 
             if (profilesError) throw profilesError;
 
-            // Get all game scores
+            // Get game scores for enrolled students
             let scores = [];
             const { data: scoresData, error: scoresError } = await supabase
                 .from('game_scores')
-                .select('user_id, game_type, difficulty, score, created_at');
+                .select('user_id, game_type, difficulty, score, created_at')
+                .in('user_id', enrolledUserIds);
 
             if (!scoresError) scores = scoresData || [];
 
-            // Get all game plays
+            // Get game plays for enrolled students
             let plays = [];
             const { data: playsData, error: playsError } = await supabase
                 .from('game_plays')
-                .select('user_id, game_type, difficulty, created_at');
+                .select('user_id, game_type, difficulty, created_at')
+                .in('user_id', enrolledUserIds);
 
             if (!playsError) plays = playsData || [];
 
@@ -174,9 +214,22 @@ export default function StudentInsights() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-12">
-                <Loader2 className="animate-spin text-purple-600 mb-4" size={40} />
-                <p className="text-slate-600 dark:text-slate-400">Analyzing student data...</p>
+            <div className="space-y-6">
+                {/* Header skeleton */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Skeleton className="h-8 w-48 mb-2" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <Skeleton className="h-10 w-24" />
+                </div>
+                {/* Stats skeleton */}
+                <StatsGridSkeleton count={3} />
+                {/* Cards skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <InsightsCardSkeleton />
+                    <InsightsCardSkeleton />
+                </div>
             </div>
         );
     }

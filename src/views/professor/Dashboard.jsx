@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import CourseManager from './CourseManager';
 import TopicManager from './TopicManager';
+import ActivityManager from './ActivityManager';
 import StudentProgress from './StudentProgress';
 import StudentInsights from './StudentInsights';
 import AIUsageStats from './AIUsageStats';
@@ -11,13 +12,14 @@ import { Card } from '../../components/ui/Card';
 import {
     BookOpen, Users, TrendingUp, Sparkles, FileText,
     Activity, ChevronRight, Loader2, GraduationCap,
-    BarChart3, Brain, Zap
+    BarChart3, Brain, Zap, ClipboardList
 } from 'lucide-react';
 
 export default function ProfessorDashboard() {
     const { user, profile } = useAuth();
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [activeTab, setActiveTab] = useState('courses');
+    const [activityCourse, setActivityCourse] = useState(null);
     const [stats, setStats] = useState({
         courses: 0,
         students: 0,
@@ -59,6 +61,7 @@ export default function ProfessorDashboard() {
             const courseIds = courses?.map(c => c.id) || [];
             let materialsCount = 0;
             let topicsCount = 0;
+            let enrolledStudents = 0;
 
             if (courseIds.length > 0) {
                 // Get topics for professor's courses
@@ -78,34 +81,50 @@ export default function ProfessorDashboard() {
 
                     materialsCount = materials?.length || 0;
                 }
+
+                // Get enrolled students count (unique students across professor's courses)
+                const { data: enrollments } = await supabase
+                    .from('course_enrollments')
+                    .select('user_id')
+                    .in('course_id', courseIds);
+
+                const uniqueStudents = new Set(enrollments?.map(e => e.user_id) || []);
+                enrolledStudents = uniqueStudents.size;
             }
 
-            // Get student count (everyone except professors)
-            const { data: students } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('role', 'student');
-
-            // Get active today (users who played games today)
+            // Get active today (enrolled students who played games today)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             let activeToday = 0;
-            try {
-                const { data: recentScores } = await supabase
-                    .from('game_scores')
-                    .select('user_id')
-                    .gte('created_at', today.toISOString());
+            if (courseIds.length > 0) {
+                try {
+                    // Get enrolled student IDs first
+                    const { data: enrollments } = await supabase
+                        .from('course_enrollments')
+                        .select('user_id')
+                        .in('course_id', courseIds);
 
-                const uniqueUsers = new Set(recentScores?.map(s => s.user_id) || []);
-                activeToday = uniqueUsers.size;
-            } catch (e) {
-                // game_scores table may not exist
+                    const enrolledIds = enrollments?.map(e => e.user_id) || [];
+
+                    if (enrolledIds.length > 0) {
+                        const { data: recentScores } = await supabase
+                            .from('game_scores')
+                            .select('user_id')
+                            .in('user_id', enrolledIds)
+                            .gte('created_at', today.toISOString());
+
+                        const uniqueUsers = new Set(recentScores?.map(s => s.user_id) || []);
+                        activeToday = uniqueUsers.size;
+                    }
+                } catch (e) {
+                    // game_scores table may not exist
+                }
             }
 
             setStats({
                 courses: courses?.length || 0,
-                students: students?.length || 0,
+                students: enrolledStudents,
                 materials: materialsCount,
                 activeToday
             });
@@ -118,6 +137,7 @@ export default function ProfessorDashboard() {
 
     const tabs = [
         { id: 'courses', label: 'Course Management', icon: BookOpen },
+        { id: 'activities', label: 'Activities', icon: ClipboardList },
         { id: 'progress', label: 'Student Progress', icon: BarChart3 },
         { id: 'insights', label: 'AI Insights', icon: Brain, isNew: true },
         { id: 'ai-usage', label: 'AI Usage', icon: Zap },
@@ -247,8 +267,17 @@ export default function ProfessorDashboard() {
                         course={selectedCourse}
                         onBack={() => setSelectedCourse(null)}
                     />
+                ) : activityCourse ? (
+                    <ActivityManager
+                        courseId={activityCourse.id}
+                        courseName={activityCourse.title}
+                        onBack={() => setActivityCourse(null)}
+                        enrolledCount={activityCourse.student_count}
+                    />
                 ) : activeTab === 'courses' ? (
                     <CourseManager onSelectCourse={setSelectedCourse} />
+                ) : activeTab === 'activities' ? (
+                    <CourseManager onSelectCourse={setActivityCourse} mode="activities" />
                 ) : activeTab === 'progress' ? (
                     <StudentProgress />
                 ) : activeTab === 'insights' ? (

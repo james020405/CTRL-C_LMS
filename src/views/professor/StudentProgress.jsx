@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Skeleton, StudentListSkeleton } from '../../components/ui/Skeleton';
 import {
     Users, TrendingUp, Trophy, Target, Loader2,
     ChevronDown, ChevronUp, AlertTriangle, FileText, Link2, Wrench,
@@ -40,58 +41,78 @@ export default function StudentProgress() {
         setError('');
 
         try {
-            // First, get ALL profiles (not just by role)
-            console.log('Fetching profiles...');
+            // Get current professor's ID from auth
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) throw new Error('Not authenticated');
+
+            // Get professor's courses
+            const { data: courses, error: coursesError } = await supabase
+                .from('courses')
+                .select('id')
+                .eq('professor_id', authUser.id);
+
+            if (coursesError) throw coursesError;
+
+            if (!courses || courses.length === 0) {
+                setStudents([]);
+                setLoading(false);
+                return;
+            }
+
+            const courseIds = courses.map(c => c.id);
+
+            // Get enrollments for professor's courses
+            const { data: enrollments, error: enrollError } = await supabase
+                .from('course_enrollments')
+                .select('user_id')
+                .in('course_id', courseIds);
+
+            if (enrollError) {
+                console.log('Enrollments query error:', enrollError.message);
+            }
+
+            // Get unique enrolled user IDs
+            const enrolledUserIds = [...new Set(enrollments?.map(e => e.user_id) || [])];
+
+            if (enrolledUserIds.length === 0) {
+                setStudents([]);
+                setLoading(false);
+                return;
+            }
+
+            // Get profiles for enrolled students only
             const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
-                .select('id, full_name, email, role');
-
-            console.log('Profiles query result:', { profiles, error: profilesError });
+                .select('id, full_name, email, role')
+                .in('id', enrolledUserIds);
 
             if (profilesError) {
                 console.error('Profiles error:', profilesError);
                 throw new Error(`Cannot load profiles: ${profilesError.message}`);
             }
 
-            console.log('Number of profiles found:', profiles?.length || 0);
-
-            if (!profiles || profiles.length === 0) {
-                console.warn('No profiles returned - check RLS policies!');
-                setStudents([]);
-                setLoading(false);
-                return;
-            }
-
-            // Try to get game scores (may not exist or be empty)
+            // Get game scores for enrolled students
             let scores = [];
             const { data: scoresData, error: scoresError } = await supabase
                 .from('game_scores')
-                .select('user_id, game_type, difficulty, score, created_at');
+                .select('user_id, game_type, difficulty, score, created_at')
+                .in('user_id', enrolledUserIds);
 
-            if (scoresError) {
-                console.log('game_scores query error (table may not exist):', scoresError.message);
-                // Continue with empty scores - don't throw
-            } else {
-                scores = scoresData || [];
-            }
+            if (!scoresError) scores = scoresData || [];
 
-            // Try to get game plays (may not exist or be empty)
+            // Get game plays for enrolled students
             let plays = [];
             const { data: playsData, error: playsError } = await supabase
                 .from('game_plays')
-                .select('user_id, game_type, difficulty');
+                .select('user_id, game_type, difficulty')
+                .in('user_id', enrolledUserIds);
 
-            if (playsError) {
-                console.log('game_plays query error (table may not exist):', playsError.message);
-                // Continue with empty plays - don't throw
-            } else {
-                plays = playsData || [];
-            }
+            if (!playsError) plays = playsData || [];
 
-            console.log('Scores count:', scores.length, 'Plays count:', plays.length);
+            console.log('Enrolled students:', enrolledUserIds.length, 'Scores:', scores.length);
 
-            // Aggregate data per student (include ALL profiles)
-            const studentData = profiles.map(profile => {
+            // Aggregate data per student
+            const studentData = (profiles || []).map(profile => {
                 const studentScores = scores.filter(s => s.user_id === profile.id) || [];
                 const studentPlays = plays.filter(p => p.user_id === profile.id) || [];
 
@@ -173,9 +194,22 @@ export default function StudentProgress() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-12">
-                <Loader2 className="animate-spin text-blue-600 mr-2" size={24} />
-                <span className="text-slate-600 dark:text-slate-400">Loading student progress...</span>
+            <div className="space-y-6">
+                {/* Header skeleton */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <Skeleton className="h-8 w-48 mb-2" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-48" />
+                        <Skeleton className="h-10 w-24" />
+                    </div>
+                </div>
+                {/* Table skeleton */}
+                <Card className="overflow-hidden">
+                    <StudentListSkeleton count={6} />
+                </Card>
             </div>
         );
     }

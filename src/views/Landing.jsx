@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Award, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Gamepad2, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Header } from '../components/Header';
@@ -129,9 +129,9 @@ export default function Landing() {
                             color="bg-amber-50 dark:bg-amber-900/20"
                         />
                         <FeatureCard
-                            icon={<Award className="w-6 h-6 text-emerald-600" />}
-                            title="Certification Prep"
-                            desc="Curriculum aligned with ASE standards to get you job-ready."
+                            icon={<Gamepad2 className="w-6 h-6 text-emerald-600" />}
+                            title="Interactive Games"
+                            desc="Gamified learning challenges to test your diagnostic and repair skills."
                             color="bg-emerald-50 dark:bg-emerald-900/20"
                         />
                     </div>

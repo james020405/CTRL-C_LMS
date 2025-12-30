@@ -267,7 +267,9 @@ export default function AIUsageStats() {
                         <div>
                             <p className="text-xs text-slate-500 uppercase">Rate Limit</p>
                             <p className="text-xl font-bold text-slate-900 dark:text-white">
-                                {hasRateLimit ? `${stats.rate_limit.requests}/${stats.rate_limit.interval}` : 'No limit'}
+                                {hasRateLimit && stats.rate_limit.requests > 0
+                                    ? `${stats.rate_limit.requests}/${stats.rate_limit.interval}`
+                                    : 'No limit'}
                             </p>
                         </div>
                     </div>

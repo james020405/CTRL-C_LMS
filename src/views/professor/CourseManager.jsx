@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Plus, Copy, Trash2, ChevronRight, Check, Loader2, BookOpen, Users } from 'lucide-react';
+import { Plus, Copy, Trash2, ChevronRight, Check, Loader2, BookOpen, Users, X, UserMinus, ClipboardList } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 
-export default function CourseManager({ onSelectCourse }) {
+export default function CourseManager({ onSelectCourse, mode = 'content' }) {
     const { user } = useAuth();
-    const { toast } = useToast();
+    const toast = useToast();
     const [courses, setCourses] = useState([]);
     const [newCourseTitle, setNewCourseTitle] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,6 +21,13 @@ export default function CourseManager({ onSelectCourse }) {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [courseToDelete, setCourseToDelete] = useState(null);
 
+    // Enrolled Students Modal State
+    const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+    const [selectedCourseForStudents, setSelectedCourseForStudents] = useState(null);
+    const [enrolledStudents, setEnrolledStudents] = useState([]);
+    const [loadingStudents, setLoadingStudents] = useState(false);
+    const [studentToRemove, setStudentToRemove] = useState(null);
+
     useEffect(() => {
         if (user) {
             fetchCourses();
@@ -30,14 +37,22 @@ export default function CourseManager({ onSelectCourse }) {
     const fetchCourses = async () => {
         setLoading(true);
         try {
+            // Fetch courses with actual enrollment count from course_enrollments
             const { data, error } = await supabase
                 .from('courses')
-                .select('*')
+                .select('*, course_enrollments(count)')
                 .eq('professor_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setCourses(data || []);
+
+            // Map the enrollment count to student_count for display
+            const coursesWithCount = (data || []).map(course => ({
+                ...course,
+                student_count: course.course_enrollments?.[0]?.count || 0
+            }));
+
+            setCourses(coursesWithCount);
         } catch (error) {
             console.error('Error fetching courses:', error);
             setError('Failed to load courses. Please refresh the page.');
@@ -140,6 +155,98 @@ export default function CourseManager({ onSelectCourse }) {
             setCopiedCode(code);
             toast.success('Code copied to clipboard');
             setTimeout(() => setCopiedCode(null), 2000);
+        }
+    };
+
+    // Fetch enrolled students for a course
+    const fetchEnrolledStudents = async (course) => {
+        setSelectedCourseForStudents(course);
+        setShowEnrolledModal(true);
+        setLoadingStudents(true);
+
+        try {
+            // Get enrollments
+            const { data: enrollments, error: enrollError } = await supabase
+                .from('course_enrollments')
+                .select('id, user_id, enrolled_at')
+                .eq('course_id', course.id);
+
+            if (enrollError) throw enrollError;
+
+            if (!enrollments || enrollments.length === 0) {
+                setEnrolledStudents([]);
+                setLoadingStudents(false);
+                return;
+            }
+
+            // Get profiles for enrolled users
+            const userIds = enrollments.map(e => e.user_id);
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .in('id', userIds);
+
+            if (profilesError) throw profilesError;
+
+            // Combine enrollment and profile data
+            const students = enrollments.map(enrollment => {
+                const profile = profiles?.find(p => p.id === enrollment.user_id);
+                return {
+                    enrollment_id: enrollment.id,
+                    user_id: enrollment.user_id,
+                    name: profile?.full_name || profile?.email?.split('@')[0] || 'Unknown',
+                    email: profile?.email || '',
+                    enrolled_at: enrollment.enrolled_at
+                };
+            });
+
+            setEnrolledStudents(students);
+        } catch (error) {
+            console.error('Error fetching enrolled students:', error);
+            toast.error('Failed to load students');
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
+
+    // Remove student from course - initiate confirmation
+    const initiateRemoveStudent = (student) => {
+        setStudentToRemove(student);
+    };
+
+    // Confirm and remove student
+    const confirmRemoveStudent = async () => {
+        if (!studentToRemove) return;
+
+        try {
+            const { error } = await supabase
+                .from('course_enrollments')
+                .delete()
+                .eq('id', studentToRemove.enrollment_id);
+
+            if (error) throw error;
+
+            // Update local state
+            setEnrolledStudents(prev => prev.filter(s => s.enrollment_id !== studentToRemove.enrollment_id));
+
+            // Decrement student count
+            if (selectedCourseForStudents) {
+                await supabase.rpc('decrement_student_count', { course_uuid: selectedCourseForStudents.id });
+
+                // Update courses list
+                setCourses(prev => prev.map(c =>
+                    c.id === selectedCourseForStudents.id
+                        ? { ...c, student_count: Math.max(0, (c.student_count || 0) - 1) }
+                        : c
+                ));
+            }
+
+            toast.success(`${studentToRemove.name} removed from course`);
+        } catch (error) {
+            console.error('Error removing student:', error);
+            toast.error('Failed to remove student');
+        } finally {
+            setStudentToRemove(null);
         }
     };
 
@@ -246,10 +353,17 @@ export default function CourseManager({ onSelectCourse }) {
                                                                 <Copy size={14} className="opacity-50" />
                                                             )}
                                                         </button>
-                                                        <span className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                fetchEnrolledStudents(course);
+                                                            }}
+                                                            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                                                            title="Click to view enrolled students"
+                                                        >
                                                             <Users size={14} className="opacity-50" />
                                                             {course.student_count || 0} Students
-                                                        </span>
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -267,7 +381,11 @@ export default function CourseManager({ onSelectCourse }) {
                                                     onClick={() => onSelectCourse(course)}
                                                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                                                 >
-                                                    Manage Topics <ChevronRight size={16} className="ml-1" />
+                                                    {mode === 'activities' ? (
+                                                        <>Manage Activities <ClipboardList size={16} className="ml-1" /></>
+                                                    ) : (
+                                                        <>Manage Topics <ChevronRight size={16} className="ml-1" /></>
+                                                    )}
                                                 </Button>
                                             </div>
                                         </div>
@@ -289,6 +407,73 @@ export default function CourseManager({ onSelectCourse }) {
                 cancelText="Cancel"
                 variant="danger"
             />
+
+            {/* Enrolled Students Modal */}
+            {showEnrolledModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Enrolled Students</h3>
+                                <p className="text-sm text-slate-500">{selectedCourseForStudents?.title}</p>
+                            </div>
+                            <button
+                                onClick={() => { setShowEnrolledModal(false); setSelectedCourseForStudents(null); setStudentToRemove(null); }}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4">
+                            {/* Removal Confirmation */}
+                            {studentToRemove && (
+                                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                                        Remove <strong>{studentToRemove.name}</strong> from this course?
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" onClick={confirmRemoveStudent} className="bg-red-600 hover:bg-red-700 text-white">Yes, Remove</Button>
+                                        <Button size="sm" variant="outline" onClick={() => setStudentToRemove(null)}>Cancel</Button>
+                                    </div>
+                                </div>
+                            )}
+                            {loadingStudents ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="animate-spin text-blue-600" size={24} />
+                                </div>
+                            ) : enrolledStudents.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Users className="mx-auto mb-2 text-slate-400" size={32} />
+                                    <p className="text-slate-500">No students enrolled yet</p>
+                                    <p className="text-xs text-slate-400 mt-1">Share the course code with your students</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {enrolledStudents.map((student) => (
+                                        <div
+                                            key={student.enrollment_id}
+                                            className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                        >
+                                            <div>
+                                                <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
+                                                <p className="text-xs text-slate-500">{student.email}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => initiateRemoveStudent(student)}
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                title="Remove student"
+                                            >
+                                                <UserMinus size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

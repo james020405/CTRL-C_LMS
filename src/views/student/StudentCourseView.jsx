@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { FileText, Video, Image as ImageIcon, Link as LinkIcon, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Video, Image as ImageIcon, Link as LinkIcon, ChevronLeft, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
@@ -66,14 +66,23 @@ export default function StudentCourseView() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" onClick={() => navigate('/student/dashboard')} className="p-2">
-                    <ChevronLeft size={24} />
-                </Button>
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{course.title}</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Course Code: {course.access_code}</p>
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" onClick={() => navigate('/student/dashboard')} className="p-2">
+                        <ChevronLeft size={24} />
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{course.title}</h1>
+                        <p className="text-slate-500 dark:text-slate-400">Course Code: {course.access_code}</p>
+                    </div>
                 </div>
+                <Button
+                    onClick={() => navigate(`/student/course/${courseId}/activities`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                    <ClipboardList size={18} className="mr-2" />
+                    Activities
+                </Button>
             </div>
 
             <div className="space-y-4">

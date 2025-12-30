@@ -41,6 +41,18 @@ a,
   body {
     @apply bg-slate-50 text-slate-900;
   }
+
+  /* Dark mode color scheme for native elements */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Fix select dropdown styling in dark mode */
+  .dark select option {
+    background-color: rgb(30, 41, 59);
+    /* slate-800 */
+    color: white;
+  }
 }
 
 @layer utilities {
