@@ -6,12 +6,19 @@ import { generateServiceCustomer, evaluateEstimate, askCustomerQuestion, askTech
 import { getRemainingPlays, recordPlay, submitScore, SCORE_MULTIPLIERS } from '../../lib/gameService';
 import { useAuth } from '../../contexts/AuthContext';
 import DifficultySelector from '../../components/DifficultySelector';
-import { Loader2, User, Car, FileText, CheckCircle, XCircle, Calculator, RefreshCw, MessageSquare, Trophy, HelpCircle, Send, Wrench, ClipboardList, Stethoscope } from 'lucide-react';
+import { Loader2, User, Car, FileText, CheckCircle, XCircle, Calculator, RefreshCw, MessageSquare, Trophy, HelpCircle, Send, Wrench, ClipboardList, Stethoscope, Check } from 'lucide-react';
 
 // Question limits per difficulty
 const QUESTION_LIMITS = {
     easy: 5,
     medium: 3,
+    hard: 1
+};
+
+// Technician command limits per difficulty
+const COMMAND_LIMITS = {
+    easy: 3,
+    medium: 2,
     hard: 1
 };
 
@@ -23,10 +30,8 @@ export default function ServiceWriter() {
     const [difficulty, setDifficulty] = useState(null);
     const [remainingPlays, setRemainingPlays] = useState({ easy: 5, medium: 5, hard: 2 });
 
-    // Estimate State
-    const [parts, setParts] = useState([{ name: '', cost: '' }]);
-    const [laborHours, setLaborHours] = useState('');
-    const [laborRate, setLaborRate] = useState(500);
+    // Multiple Choice State (NEW - replaces old estimate builder)
+    const [selectedOption, setSelectedOption] = useState(null);
     const [notes, setNotes] = useState('');
     const [result, setResult] = useState(null);
     const [score, setScore] = useState(0);
@@ -36,12 +41,12 @@ export default function ServiceWriter() {
     const [questionInput, setQuestionInput] = useState('');
     const [questionHistory, setQuestionHistory] = useState([]);
     const [askingQuestion, setAskingQuestion] = useState(false);
-    const askingRef = useRef(false); // Ref to prevent race condition with double-submit
+    const askingRef = useRef(false);
 
-    // Technician Command State (1 command allowed per game)
-    const [technicianCommandUsed, setTechnicianCommandUsed] = useState(false);
+    // Technician Command State
+    const [commandsRemaining, setCommandsRemaining] = useState(0);
     const [technicianCommandInput, setTechnicianCommandInput] = useState('');
-    const [technicianCommandResponse, setTechnicianCommandResponse] = useState(null);
+    const [technicianCommandHistory, setTechnicianCommandHistory] = useState([]);
     const [sendingTechCommand, setSendingTechCommand] = useState(false);
 
     // Load remaining plays on mount
@@ -61,22 +66,21 @@ export default function ServiceWriter() {
         setLoading(true);
         setGameState('estimating');
         setResult(null);
-        setParts([{ name: '', cost: '' }]);
-        setLaborHours('');
+        setSelectedOption(null); // Reset multiple choice selection
         setNotes('');
         setScore(0);
         setQuestionsRemaining(QUESTION_LIMITS[selectedDifficulty] || 3);
         setQuestionHistory([]);
         setQuestionInput('');
         // Reset technician command state
-        setTechnicianCommandUsed(false);
+        setCommandsRemaining(COMMAND_LIMITS[selectedDifficulty] || 1);
         setTechnicianCommandInput('');
-        setTechnicianCommandResponse(null);
+        setTechnicianCommandHistory([]);
 
         try {
             // Record the play and immediately update remaining plays
             await recordPlay(user?.id, 'service_writer', selectedDifficulty);
-            await loadRemainingPlays(); // Refresh count immediately
+            await loadRemainingPlays();
 
             const newCustomer = await generateServiceCustomer(selectedDifficulty);
             setCustomer(newCustomer);
@@ -87,22 +91,11 @@ export default function ServiceWriter() {
         }
     };
 
-    const addPart = () => setParts([...parts, { name: '', cost: '' }]);
-
-    const updatePart = (index, field, value) => {
-        const newParts = [...parts];
-        newParts[index][field] = value;
-        setParts(newParts);
-    };
-
-    const removePart = (index) => setParts(parts.filter((_, i) => i !== index));
-
     // Handle asking a question to the customer
     const handleAskQuestion = async () => {
-        // Use ref for immediate check to prevent race condition
         if (!questionInput.trim() || questionsRemaining <= 0 || askingRef.current) return;
 
-        askingRef.current = true; // Immediately block further calls
+        askingRef.current = true;
         setAskingQuestion(true);
         try {
             const response = await askCustomerQuestion(customer, questionInput, questionHistory);
@@ -120,18 +113,18 @@ export default function ServiceWriter() {
         }
     };
 
-    // Handle sending a command to the technician (1 allowed per game)
+    // Handle sending a command to the technician
     const handleTechnicianCommand = async () => {
-        if (!technicianCommandInput.trim() || technicianCommandUsed || sendingTechCommand) return;
+        if (!technicianCommandInput.trim() || commandsRemaining <= 0 || sendingTechCommand) return;
 
         setSendingTechCommand(true);
         try {
             const response = await askTechnicianToCheck(customer, technicianCommandInput);
-            setTechnicianCommandResponse({
+            setTechnicianCommandHistory([...technicianCommandHistory, {
                 command: technicianCommandInput,
                 response: response
-            });
-            setTechnicianCommandUsed(true);
+            }]);
+            setCommandsRemaining(prev => prev - 1);
             setTechnicianCommandInput('');
         } catch (err) {
             console.error("Error sending technician command:", err);
@@ -140,169 +133,52 @@ export default function ServiceWriter() {
         }
     };
 
-    const calculateTotal = () => {
-        const partsTotal = parts.reduce((sum, part) => sum + (parseFloat(part.cost) || 0), 0);
-        const laborTotal = (parseFloat(laborHours) || 0) * laborRate;
-        return { partsTotal, laborTotal, grandTotal: partsTotal + laborTotal };
+    // Calculate total for a given estimate option
+    const calculateOptionTotal = (option) => {
+        if (!option) return 0;
+        const partsTotal = option.parts?.reduce((sum, p) => sum + (p.cost || 0), 0) || 0;
+        const laborTotal = (option.laborHours || 0) * (option.laborRate || 500);
+        return partsTotal + laborTotal;
     };
 
-    // Validation: Check if estimate is complete enough to submit
-    const validateEstimate = () => {
-        // Must have at least 1 part with a name AND cost
-        const validParts = parts.filter(p => p.name.trim() !== '' && parseFloat(p.cost) > 0);
-        if (validParts.length === 0) return { valid: false, error: 'Add at least 1 part with name and cost' };
-
-        // Must have labor hours specified
-        if (!laborHours || parseFloat(laborHours) <= 0) return { valid: false, error: 'Enter labor hours' };
-
-        return { valid: true, error: null };
-    };
-
-    // Calculate parts accuracy score (how many correct parts the student identified)
-    const calculatePartsAccuracy = () => {
-        if (!customer?.correctParts || customer.correctParts.length === 0) return { matched: 0, total: 0, accuracy: 0 };
-
-        const studentParts = parts.filter(p => p.name.trim()).map(p => p.name.toLowerCase());
-        const correctParts = customer.correctParts.map(p => p.toLowerCase());
-
-        // Count how many correct parts were included
-        let matchedCount = 0;
-        correctParts.forEach(correct => {
-            const found = studentParts.some(student =>
-                student.includes(correct) || correct.includes(student)
-            );
-            if (found) matchedCount++;
-        });
-
-        return {
-            matched: matchedCount,
-            total: correctParts.length,
-            accuracy: correctParts.length > 0 ? (matchedCount / correctParts.length) * 100 : 0
-        };
-    };
-
-    // Calculate price accuracy (how close to ideal estimate range)
-    const calculatePriceAccuracy = (grandTotal) => {
-        if (!customer) return 0;
-
-        const idealMin = customer.idealEstimateRange?.min || customer.budget * 0.3;
-        const idealMax = customer.idealEstimateRange?.max || customer.budget * 0.9;
-        const idealMid = (idealMin + idealMax) / 2;
-
-        // If price is too low (below 50% of minimum) = 0 points
-        if (grandTotal < idealMin * 0.5) return 0;
-
-        // If within ideal range = full points
-        if (grandTotal >= idealMin && grandTotal <= idealMax) return 100;
-
-        // If between 50% of min and min = partial credit
-        if (grandTotal < idealMin) {
-            const deviation = (idealMin - grandTotal) / idealMin;
-            return Math.max(0, Math.round((1 - deviation) * 60));
-        }
-
-        // If over ideal max but within budget = partial credit
-        if (grandTotal > idealMax && grandTotal <= customer.budget) {
-            const overage = (grandTotal - idealMax) / (customer.budget - idealMax);
-            return Math.max(0, Math.round((1 - overage * 0.5) * 80));
-        }
-
-        // If over budget = minimal/no credit
-        if (grandTotal > customer.budget) {
-            const overage = (grandTotal - customer.budget) / customer.budget;
-            return Math.max(0, Math.round((1 - overage) * 30));
-        }
-
-        return 50; // Default fallback
-    };
-
-    // Calculate labor hours accuracy
-    const calculateLaborAccuracy = () => {
-        if (!customer?.recommendedLaborHours) return 50; // No data to compare
-
-        const recommended = customer.recommendedLaborHours;
-        const actual = parseFloat(laborHours) || 0;
-
-        if (actual === 0) return 0;
-
-        const deviation = Math.abs(actual - recommended) / recommended;
-
-        if (deviation <= 0.2) return 100; // Within 20%
-        if (deviation <= 0.5) return 70;  // Within 50%
-        if (deviation <= 1.0) return 40;  // Within 100%
-        return 10; // Very far off
-    };
-
-    const submitEstimate = async () => {
-        // Double-check validation
-        const validation = validateEstimate();
-        if (!validation.valid) return;
+    // Submit the selected answer
+    const submitAnswer = async () => {
+        if (!selectedOption) return;
 
         setLoading(true);
-        const totals = calculateTotal();
-        const partsAccuracy = calculatePartsAccuracy();
-        const priceAccuracy = calculatePriceAccuracy(totals.grandTotal);
-        const laborAccuracy = calculateLaborAccuracy();
-        const evaluation = await evaluateEstimate(customer, totals, notes);
 
-        // NEW SCORING SYSTEM (100 points max before multiplier):
-        // - Parts Accuracy: 30 points
-        // - Price Accuracy: 30 points  
-        // - Labor Accuracy: 20 points
-        // - Communication: 20 points
+        const chosen = customer.estimateOptions?.find(o => o.id === selectedOption);
+        const isCorrect = selectedOption === customer.correctAnswer;
+        const chosenTotal = calculateOptionTotal(chosen);
 
-        const partsScore = Math.round((partsAccuracy.accuracy / 100) * 30);
-        const priceScore = Math.round((priceAccuracy / 100) * 30);
-        const laborScore = Math.round((laborAccuracy / 100) * 20);
-        const communicationScore = Math.round(((evaluation.communicationScore || 50) / 100) * 20);
+        // Simple scoring: correct answer = high score, wrong = low score
+        // Communication/notes adds bonus points
+        let baseScore = isCorrect ? 80 : 20;
 
-        let type = '';
-
-        // Determine result type based on outcome
-        if (evaluation.outcome === 'Accepted') {
-            type = 'success';
-        } else if (evaluation.outcome === 'Negotiated') {
-            type = 'warning';
-        } else if (evaluation.outcome === 'Suspicious') {
-            type = 'suspicious'; // New type for low prices
-        } else {
-            type = 'error';
-        }
-
-        // Calculate total base score
-        const baseScore = partsScore + priceScore + laborScore + communicationScore;
+        // Add communication bonus (up to 20 points for notes)
+        const notesBonus = notes.trim().length > 50 ? 20 : notes.trim().length > 20 ? 10 : 0;
+        baseScore += notesBonus;
 
         // Apply difficulty multiplier
         const multiplier = SCORE_MULTIPLIERS[difficulty] || 1;
         const finalScore = Math.round(baseScore * multiplier);
         setScore(finalScore);
 
-        // Only submit positive scores to leaderboard
+        // Submit score
         if (finalScore > 0) {
             await submitScore(user?.id, 'service_writer', difficulty, finalScore);
         }
 
         setResult({
-            outcome: evaluation.outcome,
-            message: evaluation.message,
-            feedback: evaluation.feedback,
-            correctApproach: evaluation.correctApproach,
-            idealEstimate: evaluation.idealEstimate,
-            type,
-            grandTotal: totals.grandTotal,
-            partsAccuracy, // Include parts accuracy in result for display
-            priceAccuracy,
-            laborAccuracy,
-            communicationScore: evaluation.communicationScore || 50,
-            communicationFeedback: evaluation.communicationFeedback || '',
-            // Individual scores for breakdown display
-            scoreBreakdown: {
-                parts: partsScore,
-                price: priceScore,
-                labor: laborScore,
-                communication: communicationScore,
-                total: baseScore
-            }
+            isCorrect,
+            selectedOption,
+            correctAnswer: customer.correctAnswer,
+            chosenEstimate: chosen,
+            correctEstimate: customer.estimateOptions?.find(o => o.id === customer.correctAnswer),
+            allOptions: customer.estimateOptions,
+            grandTotal: chosenTotal,
+            type: isCorrect ? 'success' : 'error',
+            notesBonus
         });
 
         setGameState('result');
@@ -420,22 +296,38 @@ export default function ServiceWriter() {
                                     </p>
                                 </div>
 
-                                {/* Additional Technician Command - 1 per game */}
+                                {/* Additional Technician Commands - multiple per game based on difficulty */}
                                 <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2">
                                             <Stethoscope size={18} className="text-purple-600" />
                                             <span className="font-medium text-slate-900 dark:text-white">Request Additional Diagnosis</span>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${!technicianCommandUsed
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${commandsRemaining > 0
                                             ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                                             : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                            {technicianCommandUsed ? 'Used' : '1 command left'}
+                                            {commandsRemaining > 0 ? `${commandsRemaining} command${commandsRemaining !== 1 ? 's' : ''} left` : 'No commands left'}
                                         </span>
                                     </div>
 
+                                    {/* Command History */}
+                                    {technicianCommandHistory.length > 0 && (
+                                        <div className="mb-3 space-y-2 max-h-48 overflow-y-auto">
+                                            {technicianCommandHistory.map((cmd, idx) => (
+                                                <div key={idx} className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3 rounded-lg">
+                                                    <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wider mb-1">
+                                                        Test #{idx + 1}: "{cmd.command}"
+                                                    </p>
+                                                    <p className="text-slate-700 dark:text-slate-300 text-sm font-mono">
+                                                        {cmd.response}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* Command Input */}
-                                    {!technicianCommandUsed && (
+                                    {commandsRemaining > 0 && (
                                         <div className="flex gap-2">
                                             <Input
                                                 value={technicianCommandInput}
@@ -452,18 +344,6 @@ export default function ServiceWriter() {
                                             >
                                                 {sendingTechCommand ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                                             </Button>
-                                        </div>
-                                    )}
-
-                                    {/* Command Response */}
-                                    {technicianCommandResponse && (
-                                        <div className="mt-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 rounded-lg">
-                                            <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wider mb-1">
-                                                Your Request: "{technicianCommandResponse.command}"
-                                            </p>
-                                            <p className="text-slate-700 dark:text-slate-300 text-sm font-mono mt-2">
-                                                {technicianCommandResponse.response}
-                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -547,293 +427,205 @@ export default function ServiceWriter() {
                         {/* Result Display */}
                         {
                             gameState === 'result' && (
-                                <Card className={`p-6 border-l-4 ${result.type === 'success' ? 'border-l-green-500 bg-green-50 dark:bg-slate-800' :
-                                    result.type === 'warning' ? 'border-l-yellow-500 bg-yellow-50 dark:bg-slate-800' :
-                                        'border-l-red-500 bg-red-50 dark:bg-slate-800'
+                                <Card className={`p-6 border-l-4 ${result.isCorrect
+                                    ? 'border-l-green-500 bg-green-50 dark:bg-slate-800'
+                                    : 'border-l-red-500 bg-red-50 dark:bg-slate-800'
                                     }`}>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        {result.type === 'success' && <CheckCircle className="text-green-600 dark:text-green-400" />}
-                                        {result.type === 'warning' && <CheckCircle className="text-yellow-600 dark:text-yellow-400" />}
-                                        {result.type === 'error' && <XCircle className="text-red-600 dark:text-red-400" />}
-                                        <h3 className={`font-bold text-lg ${result.type === 'success' ? 'text-green-800 dark:text-green-400' : result.type === 'warning' ? 'text-yellow-800 dark:text-yellow-400' : 'text-red-800 dark:text-red-400'}`}>{result.outcome}</h3>
-                                        {score > 0 && <span className="ml-auto text-sm font-bold text-blue-600 dark:text-blue-400">+{score} pts</span>}
+                                    <div className="flex items-center gap-3 mb-4">
+                                        {result.isCorrect ? (
+                                            <CheckCircle className="text-green-600 dark:text-green-400" size={28} />
+                                        ) : (
+                                            <XCircle className="text-red-600 dark:text-red-400" size={28} />
+                                        )}
+                                        <h3 className={`font-bold text-xl ${result.isCorrect ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
+                                            {result.isCorrect ? 'Correct!' : 'Incorrect'}
+                                        </h3>
+                                        {score > 0 && (
+                                            <span className="ml-auto text-sm font-bold text-blue-600 dark:text-blue-400">+{score} pts</span>
+                                        )}
                                     </div>
-                                    <p className="italic text-lg mb-4 text-slate-700 dark:text-slate-300">"{result.message}"</p>
-                                    {result.feedback && (
-                                        <div className="bg-white/50 dark:bg-slate-700 p-3 rounded-lg text-sm mb-4">
-                                            <span className="font-bold text-slate-700 dark:text-slate-200">AI Feedback:</span> <span className="text-slate-600 dark:text-slate-300">{result.feedback}</span>
-                                        </div>
-                                    )}
 
-                                    {/* Correct Approach - shows on rejection/negotiation */}
-                                    {result.correctApproach && (
-                                        <div className="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 p-4 rounded-lg mb-4">
-                                            <h4 className="font-bold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
-                                                Correct Approach
-                                            </h4>
-                                            <p className="text-blue-700 dark:text-slate-300 text-sm mb-2">
-                                                {result.correctApproach}
-                                            </p>
-                                            {result.idealEstimate && (
-                                                <div className="text-sm font-mono bg-blue-100 dark:bg-slate-700 text-blue-800 dark:text-blue-300 px-3 py-2 rounded inline-block">
-                                                    Ideal Estimate: <span className="font-bold">₱{result.idealEstimate.toLocaleString()}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Parts Comparison - always show after game ends */}
+                                    {/* Diagnosis */}
                                     {customer.actualProblem && (
                                         <div className="bg-amber-50 dark:bg-slate-800 border border-amber-200 dark:border-slate-700 p-4 rounded-lg mb-4">
                                             <h4 className="font-bold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-2">
                                                 <Wrench size={18} />
-                                                Diagnosis: {customer.actualProblem}
+                                                Actual Problem
                                             </h4>
-
-                                            {/* Your Parts */}
-                                            <div className="mb-3">
-                                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">Your Parts:</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {parts.filter(p => p.name.trim()).length > 0 ? (
-                                                        parts.filter(p => p.name.trim()).map((part, idx) => {
-                                                            const isCorrect = customer.correctParts?.some(cp =>
-                                                                cp.toLowerCase().includes(part.name.toLowerCase()) ||
-                                                                part.name.toLowerCase().includes(cp.toLowerCase())
-                                                            );
-                                                            return (
-                                                                <span key={idx} className={`px-2 py-1 text-xs rounded-full ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
-                                                                    {isCorrect ? '✓' : '✗'} {part.name}
-                                                                </span>
-                                                            );
-                                                        })
-                                                    ) : (
-                                                        <span className="text-xs text-slate-500 italic">No parts listed</span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Correct Parts */}
-                                            {customer.correctParts && customer.correctParts.length > 0 && (
-                                                <div>
-                                                    <p className="text-xs font-medium text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-2">Correct Parts Needed:</p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {customer.correctParts.map((part, idx) => {
-                                                            const wasListed = parts.some(p =>
-                                                                p.name.toLowerCase().includes(part.toLowerCase()) ||
-                                                                part.toLowerCase().includes(p.name.toLowerCase())
-                                                            );
-                                                            return (
-                                                                <span key={idx} className={`px-2 py-1 text-xs rounded-full ${wasListed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-amber-100 dark:bg-slate-700 text-amber-800 dark:text-amber-300'}`}>
-                                                                    {wasListed ? '✓' : '○'} {part}
-                                                                </span>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <p className="text-slate-700 dark:text-slate-300">
+                                                {customer.actualProblem}
+                                            </p>
                                         </div>
                                     )}
 
-                                    {/* Score Breakdown */}
-                                    {result.scoreBreakdown && (
-                                        <div className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg mb-4">
-                                            <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                                <Trophy size={16} className="text-yellow-500" />
-                                                Score Breakdown
-                                            </h4>
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                {/* Parts Score */}
-                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Parts Accuracy</p>
-                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                                                        {result.scoreBreakdown.parts}/30 pts
-                                                    </p>
-                                                    <p className="text-xs text-slate-400">
-                                                        {result.partsAccuracy.matched}/{result.partsAccuracy.total} correct
-                                                    </p>
-                                                </div>
-                                                {/* Price Score */}
-                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price Accuracy</p>
-                                                    <p className={`font-bold text-lg ${result.scoreBreakdown.price >= 20 ? 'text-green-600' : result.scoreBreakdown.price >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                        {result.scoreBreakdown.price}/30 pts
-                                                    </p>
-                                                    <p className="text-xs text-slate-400">
-                                                        {result.priceAccuracy >= 80 ? 'Realistic' : result.priceAccuracy >= 40 ? 'Close' : 'Off target'}
-                                                    </p>
-                                                </div>
-                                                {/* Labor Score */}
-                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Labor Hours</p>
-                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                                                        {result.scoreBreakdown.labor}/20 pts
-                                                    </p>
-                                                    <p className="text-xs text-slate-400">
-                                                        {result.laborAccuracy >= 80 ? 'Good estimate' : result.laborAccuracy >= 50 ? 'Reasonable' : 'Needs work'}
-                                                    </p>
-                                                </div>
-                                                {/* Communication Score */}
-                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Communication</p>
-                                                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                                                        {result.scoreBreakdown.communication}/20 pts
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 truncate" title={result.communicationFeedback}>
-                                                        {result.communicationScore >= 70 ? 'Excellent' : result.communicationScore >= 50 ? 'Good' : 'Needs detail'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {/* Communication Feedback */}
-                                            {result.communicationFeedback && (
-                                                <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50 p-2 rounded">
-                                                    💬 {result.communicationFeedback}
-                                                </div>
-                                            )}
-                                            {/* Total */}
-                                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600 flex justify-between items-center">
-                                                <span className="font-medium text-slate-600 dark:text-slate-300">Base Score:</span>
-                                                <span className="font-bold text-lg text-slate-900 dark:text-white">{result.scoreBreakdown.total}/100</span>
-                                            </div>
+                                    {/* Your Choice vs Correct Answer */}
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className={`p-4 rounded-lg border-2 ${result.isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20'}`}>
+                                            <p className="text-xs font-bold uppercase tracking-wider mb-2 text-slate-500">Your Choice: Option {result.selectedOption}</p>
+                                            <p className="font-bold text-lg text-slate-900 dark:text-white">
+                                                ₱{result.grandTotal?.toLocaleString()}
+                                            </p>
                                         </div>
-                                    )}
-
-                                    <div className="text-sm text-slate-500">
-                                        Customer Budget: ₱{customer.budget.toLocaleString()} <br />
-                                        Your Estimate: ₱{result.grandTotal.toLocaleString()}
+                                        {!result.isCorrect && (
+                                            <div className="p-4 rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-900/20">
+                                                <p className="text-xs font-bold uppercase tracking-wider mb-2 text-green-600">Correct: Option {result.correctAnswer}</p>
+                                                <p className="font-bold text-lg text-slate-900 dark:text-white">
+                                                    ₱{(result.correctEstimate?.parts?.reduce((s, p) => s + (p.cost || 0), 0) || 0 + (result.correctEstimate?.laborHours || 0) * (result.correctEstimate?.laborRate || 500)).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
-                                    <Button onClick={playAgain} className="mt-4 w-full">
+
+                                    {/* Notes Bonus */}
+                                    {result.notesBonus > 0 && (
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4 text-center">
+                                            <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                                📝 Notes Bonus: +{result.notesBonus} pts
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="text-sm text-slate-500 mb-4">
+                                        Customer Budget: ₱{customer.budget.toLocaleString()}
+                                    </div>
+
+                                    <Button onClick={playAgain} className="w-full">
                                         <RefreshCw className="mr-2" size={16} /> Play Again
                                     </Button>
                                 </Card>
                             )
                         }
-                    </div >
+                    </div>
 
-                    {/* Right: Estimate Builder */}
-                    < div className="space-y-6" >
+                    {/* Right: Multiple Choice Estimate Selection */}
+                    <div className="space-y-6">
                         <Card className="p-6">
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <Calculator size={20} />
-                                Repair Estimate
+                                Choose the Best Repair Estimate
                             </h3>
-                            <div className="space-y-6">
-                                {/* Parts */}
-                                <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Parts</label>
-                                        <Button variant="ghost" size="sm" onClick={addPart} disabled={gameState === 'result'}>+ Add Part</Button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {parts.map((part, index) => (
-                                            <div key={index} className="flex gap-2">
-                                                <Input
-                                                    placeholder="Part Name"
-                                                    value={part.name}
-                                                    onChange={(e) => updatePart(index, 'name', e.target.value)}
-                                                    disabled={gameState === 'result'}
-                                                    className="flex-1"
-                                                />
-                                                <div className="relative w-32">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="0"
-                                                        value={part.cost}
-                                                        onChange={(e) => updatePart(index, 'cost', e.target.value)}
-                                                        disabled={gameState === 'result'}
-                                                        className="pl-8"
-                                                    />
-                                                </div>
-                                                {parts.length > 1 && (
-                                                    <Button variant="ghost" size="icon" onClick={() => removePart(index)} disabled={gameState === 'result'}>
-                                                        <XCircle size={16} className="text-red-400" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
 
-                                {/* Labor */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Labor</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <span className="text-xs text-slate-500">Hours</span>
-                                            <Input
-                                                type="number"
-                                                placeholder="e.g. 2.5"
-                                                value={laborHours}
-                                                onChange={(e) => setLaborHours(e.target.value)}
-                                                disabled={gameState === 'result'}
-                                            />
-                                        </div>
-                                        <div>
-                                            <span className="text-xs text-slate-500">Rate (₱/hr)</span>
-                                            <Input
-                                                type="number"
-                                                value={laborRate}
-                                                onChange={(e) => setLaborRate(e.target.value)}
-                                                disabled={gameState === 'result'}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                Review the technician's findings and select the most appropriate repair estimate for this customer.
+                            </p>
 
-                                {/* Notes */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                        <MessageSquare size={16} />
-                                        Notes to Customer
-                                    </label>
-                                    <textarea
-                                        className="w-full p-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Explain the repair to the customer..."
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        disabled={gameState === 'result'}
-                                    />
-                                </div>
+                            {/* Multiple Choice Options */}
+                            <div className="space-y-3">
+                                {customer.estimateOptions?.map((option) => {
+                                    const partsTotal = option.parts?.reduce((sum, p) => sum + (p.cost || 0), 0) || 0;
+                                    const laborTotal = (option.laborHours || 0) * (option.laborRate || 500);
+                                    const grandTotal = partsTotal + laborTotal;
+                                    const isSelected = selectedOption === option.id;
 
-                                {/* Totals */}
-                                <div className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-2">
-                                    <div className="flex justify-between text-sm text-slate-500">
-                                        <span>Parts Total:</span>
-                                        <span>₱{calculateTotal().partsTotal.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm text-slate-500">
-                                        <span>Labor Total:</span>
-                                        <span>₱{calculateTotal().laborTotal.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between font-bold text-lg text-slate-900 dark:text-white pt-2">
-                                        <span>Grand Total:</span>
-                                        <span>₱{calculateTotal().grandTotal.toLocaleString()}</span>
-                                    </div>
-                                </div>
-
-                                {gameState !== 'result' && (() => {
-                                    const validation = validateEstimate();
                                     return (
-                                        <div className="space-y-2">
-                                            {!validation.valid && (
-                                                <p className="text-sm text-red-500 dark:text-red-400 text-center">
-                                                    ⚠️ {validation.error}
-                                                </p>
+                                        <div
+                                            key={option.id}
+                                            onClick={() => gameState !== 'result' && setSelectedOption(option.id)}
+                                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${gameState === 'result'
+                                                ? option.id === customer.correctAnswer
+                                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                                    : option.id === selectedOption
+                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                        : 'border-slate-200 dark:border-slate-700 opacity-50'
+                                                : isSelected
+                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                                                }`}
+                                        >
+                                            {/* Option Header */}
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isSelected
+                                                        ? 'bg-blue-500 text-white'
+                                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                                        }`}>
+                                                        {option.id}
+                                                    </span>
+                                                    <span className="font-bold text-slate-900 dark:text-white">
+                                                        Option {option.id}
+                                                    </span>
+                                                    {isSelected && gameState !== 'result' && (
+                                                        <Check className="text-blue-500" size={18} />
+                                                    )}
+                                                    {gameState === 'result' && option.id === customer.correctAnswer && (
+                                                        <span className="text-green-600 text-xs font-bold">✓ CORRECT</span>
+                                                    )}
+                                                    {gameState === 'result' && option.id === selectedOption && option.id !== customer.correctAnswer && (
+                                                        <span className="text-red-600 text-xs font-bold">✗ YOUR CHOICE</span>
+                                                    )}
+                                                </div>
+                                                <span className="text-lg font-bold text-slate-900 dark:text-white">
+                                                    ₱{grandTotal.toLocaleString()}
+                                                </span>
+                                            </div>
+
+                                            {/* Parts List */}
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Parts:</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {option.parts?.map((part, idx) => (
+                                                        <span key={idx} className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                                            {part.name} <span className="text-slate-400">₱{part.cost?.toLocaleString()}</span>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Labor */}
+                                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                                                <span>Labor: {option.laborHours}hrs × ₱{option.laborRate}/hr = ₱{laborTotal.toLocaleString()}</span>
+                                            </div>
+
+                                            {/* Show explanation after result */}
+                                            {gameState === 'result' && (
+                                                <div className={`mt-3 pt-3 border-t text-sm ${option.id === customer.correctAnswer
+                                                    ? 'text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
+                                                    : 'text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                                    }`}>
+                                                    {option.explanation}
+                                                </div>
                                             )}
-                                            <Button
-                                                onClick={submitEstimate}
-                                                disabled={loading || !validation.valid}
-                                                className={`w-full ${validation.valid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-400 cursor-not-allowed'} text-white`}
-                                            >
-                                                {loading ? <Loader2 className="animate-spin mr-2" /> : 'Present Estimate'}
-                                            </Button>
                                         </div>
                                     );
-                                })()}
+                                })}
                             </div>
+
+                            {/* Notes to Customer */}
+                            <div className="mt-6">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <MessageSquare size={16} />
+                                    Notes to Customer
+                                    <span className="text-xs text-slate-400">(bonus points for detailed explanation)</span>
+                                </label>
+                                <textarea
+                                    className="w-full p-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Explain the repair to the customer... (more detailed = more bonus points)"
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    disabled={gameState === 'result'}
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            {gameState !== 'result' && (
+                                <div className="mt-4">
+                                    {!selectedOption && (
+                                        <p className="text-sm text-amber-500 text-center mb-2">
+                                            ⚠️ Select an estimate option above
+                                        </p>
+                                    )}
+                                    <Button
+                                        onClick={submitAnswer}
+                                        disabled={loading || !selectedOption}
+                                        className={`w-full ${selectedOption ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-400 cursor-not-allowed'} text-white`}
+                                    >
+                                        {loading ? <Loader2 className="animate-spin mr-2" /> : 'Submit Answer'}
+                                    </Button>
+                                </div>
+                            )}
                         </Card>
-                    </div >
-                </div >
+                    </div>
+                </div>
             )
             }
         </div >

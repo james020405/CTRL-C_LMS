@@ -131,8 +131,12 @@ export const submitScore = async (userId, gameType, difficulty, score) => {
 
 /**
  * Get leaderboard (top 10 + current user's rank) - shows best score per user
+ * @param {string} gameType - Game type
+ * @param {string} difficulty - Difficulty level
+ * @param {string} currentUserId - Current user ID
+ * @param {string|null} sectionFilter - If provided, only show users from this section
  */
-export const getLeaderboard = async (gameType, difficulty, currentUserId) => {
+export const getLeaderboard = async (gameType, difficulty, currentUserId, sectionFilter = null) => {
     try {
         // Get ALL scores for this game/difficulty
         const { data: allScores, error: topError } = await supabase
@@ -159,19 +163,14 @@ export const getLeaderboard = async (gameType, difficulty, currentUserId) => {
             userTotalScores[uid].gamesPlayed += 1;
         });
 
-        // Sort by total score descending and take top 10
-        const sortedScores = Object.values(userTotalScores)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
-
-        // Fetch profiles for top scores
-        const userIds = sortedScores.map(s => s.user_id);
+        // Fetch profiles for ALL users (need section info for filtering)
+        const userIds = Object.keys(userTotalScores);
         let profilesMap = {};
 
         if (userIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, full_name, email')
+                .select('id, full_name, email, section')
                 .in('id', userIds);
 
             profiles?.forEach(p => {
@@ -179,28 +178,52 @@ export const getLeaderboard = async (gameType, difficulty, currentUserId) => {
             });
         }
 
-        // Attach profiles to scores
-        const scoresWithProfiles = sortedScores.map(score => ({
-            ...score,
-            profiles: profilesMap[score.user_id] || { full_name: null, email: 'Unknown' }
-        }));
+        // Convert to array with profiles
+        let sortedScores = Object.values(userTotalScores)
+            .map(score => ({
+                ...score,
+                profiles: profilesMap[score.user_id] || { full_name: null, email: 'Unknown', section: null }
+            }));
 
-        // Get current user's total score and rank
+        // Apply section filter if provided
+        if (sectionFilter) {
+            sortedScores = sortedScores.filter(s => s.profiles.section === sectionFilter);
+        }
+
+        // Sort by total score descending and take top 10
+        sortedScores = sortedScores
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
+        // Get current user's total score and rank (within filtered set)
         let userRank = null;
         let userTotalScore = null;
 
         if (currentUserId && userTotalScores[currentUserId]) {
-            userTotalScore = userTotalScores[currentUserId].score;
+            const userSection = profilesMap[currentUserId]?.section;
+            // Only calculate rank if user is in same section (or no section filter)
+            if (!sectionFilter || userSection === sectionFilter) {
+                userTotalScore = userTotalScores[currentUserId].score;
 
-            // Find rank based on sorted position
-            const allSorted = Object.values(userTotalScores)
-                .sort((a, b) => b.score - a.score);
-            const userIndex = allSorted.findIndex(u => u.user_id === currentUserId);
-            userRank = userIndex !== -1 ? userIndex + 1 : null;
+                // Get all users for rank calculation (filtered if section filter active)
+                let allForRanking = Object.values(userTotalScores)
+                    .map(u => ({
+                        ...u,
+                        profiles: profilesMap[u.user_id] || { section: null }
+                    }));
+
+                if (sectionFilter) {
+                    allForRanking = allForRanking.filter(u => u.profiles.section === sectionFilter);
+                }
+
+                allForRanking.sort((a, b) => b.score - a.score);
+                const userIndex = allForRanking.findIndex(u => u.user_id === currentUserId);
+                userRank = userIndex !== -1 ? userIndex + 1 : null;
+            }
         }
 
         return {
-            topScores: scoresWithProfiles,
+            topScores: sortedScores,
             userRank,
             userBestScore: userTotalScore
         };
@@ -212,8 +235,10 @@ export const getLeaderboard = async (gameType, difficulty, currentUserId) => {
 
 /**
  * Get overall leaderboard - total points across ALL games
+ * @param {string} currentUserId - Current user ID
+ * @param {string|null} sectionFilter - If provided, only show users from this section
  */
-export const getOverallLeaderboard = async (currentUserId) => {
+export const getOverallLeaderboard = async (currentUserId, sectionFilter = null) => {
     try {
         // Get all scores (without profile join)
         const { data: allScores, error } = await supabase
@@ -244,7 +269,7 @@ export const getOverallLeaderboard = async (currentUserId) => {
         if (userIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, full_name, email')
+                .select('id, full_name, email, section')
                 .in('id', userIds);
 
             profiles?.forEach(p => {
@@ -252,13 +277,20 @@ export const getOverallLeaderboard = async (currentUserId) => {
             });
         }
 
-        // Convert to array, add profiles, and sort
-        const sortedUsers = Object.values(userTotals)
+        // Convert to array, add profiles, and filter by section if needed
+        let sortedUsers = Object.values(userTotals)
             .map(u => ({
                 ...u,
-                profiles: profilesMap[u.user_id] || { full_name: null, email: 'Unknown' }
-            }))
-            .sort((a, b) => b.totalScore - a.totalScore);
+                profiles: profilesMap[u.user_id] || { full_name: null, email: 'Unknown', section: null }
+            }));
+
+        // Apply section filter if provided
+        if (sectionFilter) {
+            sortedUsers = sortedUsers.filter(u => u.profiles.section === sectionFilter);
+        }
+
+        // Sort by total score
+        sortedUsers.sort((a, b) => b.totalScore - a.totalScore);
 
         // Get top 10
         const topScores = sortedUsers.slice(0, 10).map(u => ({

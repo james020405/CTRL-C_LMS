@@ -512,18 +512,71 @@ export default function StudentInsights() {
                 </Card>
             </div>
 
-            {/* Game Performance Breakdown */}
+            {/* Game Popularity Insights */}
             <Card className="p-5">
                 <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <BarChart3 className="text-blue-600" />
-                    Game Performance Breakdown
+                    Game Popularity Insights
                 </h3>
 
+                {/* Popularity Bar Chart */}
+                <div className="mb-6">
+                    <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+                        Most Played Games
+                    </h4>
+                    <div className="space-y-3">
+                        {Object.entries(GAME_NAMES)
+                            .map(([gameType, gameName]) => ({
+                                gameType,
+                                gameName,
+                                stats: gameStats[gameType] || { avgScore: 0, playCount: 0, uniquePlayers: 0 }
+                            }))
+                            .sort((a, b) => b.stats.playCount - a.stats.playCount)
+                            .map(({ gameType, gameName, stats }, idx) => {
+                                const maxPlays = Math.max(...Object.values(gameStats).map(s => s.playCount || 0), 1);
+                                const barWidth = (stats.playCount / maxPlays) * 100;
+                                const isTop = idx === 0 && stats.playCount > 0;
+
+                                return (
+                                    <div key={gameType} className="relative">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                                {isTop && <Trophy className="text-yellow-500" size={14} />}
+                                                {gameName}
+                                            </span>
+                                            <span className="text-sm text-slate-500">
+                                                {stats.playCount} plays • {stats.uniquePlayers} students
+                                            </span>
+                                        </div>
+                                        <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2 ${isTop
+                                                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                                                        : idx === 1
+                                                            ? 'bg-gradient-to-r from-blue-400 to-blue-500'
+                                                            : 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-500'
+                                                    }`}
+                                                style={{ width: `${Math.max(barWidth, 5)}%` }}
+                                            >
+                                                {barWidth > 20 && (
+                                                    <span className="text-xs font-bold text-white">{stats.avgScore} avg</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </div>
+
+                {/* Game Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {Object.entries(GAME_NAMES).map(([gameType, gameName]) => {
-                        const stats = gameStats[gameType] || { avgScore: 0, playCount: 0, completionRate: 0 };
+                        const stats = gameStats[gameType] || { avgScore: 0, playCount: 0, completionRate: 0, uniquePlayers: 0 };
                         const isStrong = strongestGame?.[0] === gameType;
                         const isWeak = weakestGame?.[0] === gameType && !isStrong;
+                        const sortedByPlays = Object.entries(gameStats).sort((a, b) => (b[1].playCount || 0) - (a[1].playCount || 0));
+                        const isMostPlayed = sortedByPlays[0]?.[0] === gameType;
 
                         return (
                             <div
@@ -544,10 +597,54 @@ export default function StudentInsights() {
                                     <p className="text-xs text-slate-600 dark:text-slate-400">
                                         {stats.playCount} plays
                                     </p>
+                                    {isMostPlayed && stats.playCount > 0 && (
+                                        <span className="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                            <Trophy size={10} /> Popular
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Engagement Summary */}
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <h4 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-2">
+                        📊 Engagement Summary
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <p className="text-slate-600 dark:text-slate-400">Total Game Sessions</p>
+                            <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                                {Object.values(gameStats).reduce((sum, s) => sum + (s.playCount || 0), 0)}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-600 dark:text-slate-400">Most Popular</p>
+                            <p className="font-bold text-blue-700 dark:text-blue-300">
+                                {(() => {
+                                    const sorted = Object.entries(gameStats).sort((a, b) => (b[1].playCount || 0) - (a[1].playCount || 0));
+                                    return sorted[0] ? GAME_NAMES[sorted[0][0]] : 'N/A';
+                                })()}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-600 dark:text-slate-400">Needs Promotion</p>
+                            <p className="font-bold text-orange-600 dark:text-orange-400">
+                                {(() => {
+                                    const sorted = Object.entries(gameStats).filter(([_, s]) => s.playCount > 0).sort((a, b) => (a[1].playCount || 0) - (b[1].playCount || 0));
+                                    return sorted[0] ? GAME_NAMES[sorted[0][0]] : 'N/A';
+                                })()}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-600 dark:text-slate-400">Highest Avg Score</p>
+                            <p className="font-bold text-green-600 dark:text-green-400">
+                                {strongestGame ? `${GAME_NAMES[strongestGame[0]]} (${strongestGame[1].avgScore})` : 'N/A'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </Card>
         </div>

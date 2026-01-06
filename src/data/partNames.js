@@ -263,3 +263,125 @@ export function getPartDescription(partName) {
 
     return descriptions[partName] || `Click to learn more about the ${partName}.`;
 }
+
+/**
+ * Complaint-to-System Mapping
+ * Maps customer complaints to relevant automotive systems for focused 3D visualization
+ */
+export const COMPLAINT_SYSTEM_MAP = {
+    // Engine-related complaints
+    'check engine light': ['engine', 'electrical'],
+    'engine light': ['engine', 'electrical'],
+    'engine misfire': ['engine'],
+    'rough idle': ['engine', 'electrical'],
+    'stalling': ['engine', 'electrical'],
+    'hard to start': ['engine', 'electrical'],
+    'won\'t start': ['engine', 'electrical'],
+    'no start': ['engine', 'electrical'],
+    'engine noise': ['engine'],
+    'knocking sound': ['engine'],
+    'overheating': ['engine'],
+    'coolant leak': ['engine'],
+    'oil leak': ['engine'],
+    'loss of power': ['engine', 'transmission'],
+    'power loss': ['engine', 'transmission'],
+    'poor acceleration': ['engine', 'transmission'],
+    'black smoke': ['engine'],
+    'white smoke': ['engine'],
+    'blue smoke': ['engine'],
+
+    // Transmission-related complaints
+    'hard shifting': ['transmission'],
+    'grinding gears': ['transmission'],
+    'slipping gears': ['transmission'],
+    'won\'t shift': ['transmission'],
+    'transmission noise': ['transmission'],
+    'clutch slip': ['transmission'],
+    'clutch problems': ['transmission'],
+    'vibration when accelerating': ['transmission', 'engine'],
+
+    // Brake-related complaints
+    'brake noise': ['brakes'],
+    'squealing': ['brakes'],
+    'grinding brakes': ['brakes'],
+    'soft brake pedal': ['brakes'],
+    'spongy brake': ['brakes'],
+    'brake pedal goes to floor': ['brakes'],
+    'car pulls when braking': ['brakes', 'suspension'],
+    'abs light': ['brakes', 'electrical'],
+    'brake warning light': ['brakes'],
+    'vibration when braking': ['brakes'],
+
+    // Steering-related complaints
+    'hard steering': ['steering'],
+    'steering wheel shakes': ['steering', 'suspension'],
+    'steering noise': ['steering'],
+    'power steering leak': ['steering'],
+    'steering play': ['steering'],
+    'car pulls to one side': ['steering', 'suspension'],
+    'off-center steering': ['steering'],
+    'loose steering': ['steering'],
+
+    // Suspension-related complaints
+    'rough ride': ['suspension'],
+    'bouncy ride': ['suspension'],
+    'clunking sound': ['suspension'],
+    'noise over bumps': ['suspension'],
+    'uneven tire wear': ['suspension', 'steering'],
+    'car sits low': ['suspension'],
+    'suspension noise': ['suspension'],
+    'shaking at highway speeds': ['suspension', 'steering'],
+
+    // Electrical-related complaints
+    'battery dead': ['electrical'],
+    'lights dim': ['electrical'],
+    'electrical problems': ['electrical'],
+    'car won\'t crank': ['electrical'],
+    'dashboard lights': ['electrical'],
+    'warning lights': ['electrical'],
+    'no power': ['electrical'],
+    'alternator light': ['electrical'],
+    'fuse keeps blowing': ['electrical']
+};
+
+/**
+ * Common preset complaints for diagnostic mode
+ */
+export const PRESET_COMPLAINTS = [
+    { id: 'check_engine', label: 'Check Engine Light', systems: ['engine', 'electrical'] },
+    { id: 'power_loss', label: 'Power Loss While Climbing', systems: ['engine', 'transmission'] },
+    { id: 'brake_noise', label: 'Squealing Brakes', systems: ['brakes'] },
+    { id: 'steering_shake', label: 'Steering Wheel Shakes', systems: ['steering', 'suspension'] },
+    { id: 'rough_ride', label: 'Rough/Bumpy Ride', systems: ['suspension'] },
+    { id: 'hard_shifting', label: 'Hard Shifting', systems: ['transmission'] },
+    { id: 'car_pulls', label: 'Car Pulls to Side', systems: ['steering', 'brakes', 'suspension'] },
+    { id: 'no_start', label: 'Won\'t Start', systems: ['engine', 'electrical'] },
+    { id: 'overheating', label: 'Engine Overheating', systems: ['engine'] },
+    { id: 'abs_light', label: 'ABS Warning Light', systems: ['brakes', 'electrical'] }
+];
+
+/**
+ * Get relevant systems for a given complaint
+ * @param {string} complaint - The customer complaint text
+ * @returns {string[]} Array of relevant system IDs
+ */
+export function getRelevantSystems(complaint) {
+    if (!complaint) return [];
+
+    const lowerComplaint = complaint.toLowerCase().trim();
+
+    // Check for exact match first
+    if (COMPLAINT_SYSTEM_MAP[lowerComplaint]) {
+        return COMPLAINT_SYSTEM_MAP[lowerComplaint];
+    }
+
+    // Check if complaint contains any mapped phrases
+    for (const [phrase, systems] of Object.entries(COMPLAINT_SYSTEM_MAP)) {
+        if (lowerComplaint.includes(phrase) || phrase.includes(lowerComplaint)) {
+            return systems;
+        }
+    }
+
+    // Default: return all systems if no match found
+    return ['engine', 'transmission', 'brakes', 'steering', 'suspension', 'electrical'];
+}

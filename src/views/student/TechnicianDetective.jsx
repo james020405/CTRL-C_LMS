@@ -269,6 +269,25 @@ export default function TechnicianDetective() {
                                 <Car className="text-cyan-500" size={24} />
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">{caseData.vehicle}</h3>
                             </div>
+
+                            {/* System Hint Badge - Prominently displayed */}
+                            {caseData.system && (
+                                <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <Wrench className="text-amber-600 dark:text-amber-400" size={18} />
+                                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                                            System Focus:
+                                        </span>
+                                        <span className="px-3 py-1 bg-amber-500 text-white text-sm font-bold rounded-full">
+                                            {caseData.system}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                        Focus your diagnostic tests on this system
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                                 Mileage: {caseData.mileage?.toLocaleString()} km
                             </div>

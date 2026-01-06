@@ -2,7 +2,31 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCrossSystemCase } from '../data/crossSystemCases';
 import { getChainReactionScenario } from '../data/chainReactionData';
 import logger from './logger';
+import { getPartsListForPrompt, getToolSizesForPrompt, getAllStandardParts, METRIC_TOOL_SIZES } from '../data/standardParts';
 
+// AI Guardrails - Enhanced prompts with pre-defined parts
+const AI_GUARDRAILS = {
+    partsInstruction: `
+IMPORTANT - USE ONLY THESE STANDARD PARTS:
+When mentioning automotive parts, you MUST choose from the pre-defined list below.
+Do NOT invent part names. Use the exact names provided.
+
+${Object.entries(getAllStandardParts()).map(([system, parts]) =>
+        `${system.toUpperCase()}: ${parts.slice(0, 15).join(', ')}...`
+    ).join('\n')}
+`,
+    toolsInstruction: `
+METRIC TOOLS ONLY (Philippine standard):
+${getToolSizesForPrompt()}
+`,
+    explanationInstruction: `
+DETAILED EXPLANATIONS REQUIRED:
+For each answer (correct or incorrect), provide:
+1. WHY the correct answer is right (technical reasoning)
+2. WHY each wrong answer is incorrect (common misconceptions)
+3. What symptoms would indicate this problem
+`
+};
 // Initialize Gemini with multiple model fallbacks
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -11,26 +35,26 @@ let genAI = null;
 let model = null;
 let geminiAvailable = false;
 
-// Initialize Gemini as FALLBACK (OpenRouter is primary)
+// Initialize Gemini as PRIMARY
 if (API_KEY) {
-    console.log("🔑 Gemini API key found (FALLBACK)");
+    console.log("🔑 Gemini API key found (PRIMARY)");
     try {
         genAI = new GoogleGenerativeAI(API_KEY);
         model = genAI.getGenerativeModel({ model: "gemma-3-27b-it" });
         geminiAvailable = true;
-        console.log("✅ Gemini ready as fallback");
+        console.log("✅ Gemini ready as PRIMARY");
     } catch (error) {
         console.error("❌ Gemini init failed:", error.message);
         geminiAvailable = false;
     }
 }
 
-// OpenRouter PRIMARY AI (uses OpenAI-compatible API format with Kimi K2 free)
+// OpenRouter FALLBACK AI (uses OpenAI-compatible API format with Kimi K2 free)
 const openRouterAvailable = !!OPENROUTER_API_KEY;
 if (openRouterAvailable) {
-    console.log("🔑 OpenRouter API key found (Kimi K2 - PRIMARY)");
+    console.log("🔑 OpenRouter API key found (Kimi K2 - FALLBACK)");
 } else {
-    console.warn("⚠️ OpenRouter API key NOT FOUND - will use Gemini/fallback only");
+    console.warn("⚠️ OpenRouter API key NOT FOUND - Gemini only");
 }
 
 /**
@@ -225,7 +249,7 @@ export const generateServiceCustomer = async (difficulty = 'easy') => {
     const randomBudget = Math.floor(Math.random() * (range.max - range.min)) + range.min;
 
     const prompt = `
-Create a Filipino customer for an auto repair shop simulation.
+Create a Filipino customer for an auto repair shop simulation with MULTIPLE CHOICE REPAIR OPTIONS.
 
 REQUIRED - Use these EXACT values:
 - Customer name: ${randomName}
@@ -235,6 +259,12 @@ REQUIRED - Use these EXACT values:
 - Budget: ${randomBudget} pesos
 
 Random seed: ${randomSeed}
+
+Generate 4 repair estimate options (A, B, C, D) where:
+- ONE option is CORRECT (properly diagnoses and prices the repair)
+- ONE option is OVERPRICED (correct parts but too expensive)
+- ONE option is UNDERPRICED (missing important parts or suspiciously cheap)
+- ONE option has WRONG DIAGNOSIS (incorrect parts for the problem)
 
 Return ONLY this JSON (no markdown):
 {
@@ -246,24 +276,47 @@ Return ONLY this JSON (no markdown):
     "dialogue_start": "Opening line with Filipino expressions",
     "technicianReport": "Initial inspection findings from the mechanic",
     "actualProblem": "The real technical issue",
-    "correctParts": ["part1", "part2", "part3"],
-    "idealEstimateRange": { "min": realistic_min_price, "max": realistic_max_price },
-    "recommendedLaborHours": realistic_hours_as_number
+    "correctAnswer": "A" or "B" or "C" or "D",
+    "estimateOptions": [
+        {
+            "id": "A",
+            "parts": [
+                {"name": "Part Name 1", "cost": 1500},
+                {"name": "Part Name 2", "cost": 800}
+            ],
+            "laborHours": 2.0,
+            "laborRate": 500,
+            "explanation": "Why this option is right/wrong (hidden until answer revealed)"
+        },
+        {
+            "id": "B",
+            "parts": [...],
+            "laborHours": number,
+            "laborRate": 500,
+            "explanation": "..."
+        },
+        {
+            "id": "C",
+            "parts": [...],
+            "laborHours": number,
+            "laborRate": 500,
+            "explanation": "..."
+        },
+        {
+            "id": "D",
+            "parts": [...],
+            "laborHours": number,
+            "laborRate": 500,
+            "explanation": "..."
+        }
+    ],
+    "correctParts": ["part1", "part2"],
+    "idealEstimateRange": { "min": realistic_min, "max": realistic_max },
+    "recommendedLaborHours": number
 }
     `;
 
-    // Try OpenRouter first (PRIMARY)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Service customer generated via OpenRouter (Kimi K2)");
-            return JSON.parse(text.replace(/```json|```/g, '').trim());
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             checkRateLimit();
@@ -272,7 +325,18 @@ Return ONLY this JSON (no markdown):
             console.log("✅ Service customer generated via Gemini");
             return JSON.parse(response.text().replace(/```json|```/g, '').trim());
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Service customer generated via OpenRouter (Kimi K2)");
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -305,7 +369,69 @@ const FALLBACK_CUSTOMERS = {
 
 const getFallbackServiceCustomer = (difficulty = 'easy') => {
     const customers = FALLBACK_CUSTOMERS[difficulty] || FALLBACK_CUSTOMERS.easy;
-    return customers[Math.floor(Math.random() * customers.length)];
+    const customer = customers[Math.floor(Math.random() * customers.length)];
+
+    // Generate multiple choice estimate options from the fallback data
+    const correctTotal = (customer.idealEstimateRange.min + customer.idealEstimateRange.max) / 2;
+    const laborRate = 500;
+    const correctLabor = customer.recommendedLaborHours || 2;
+    const partsTotal = correctTotal - (correctLabor * laborRate);
+    const partCount = customer.correctParts?.length || 2;
+    const avgPartCost = Math.round(partsTotal / partCount);
+
+    // Create correct option parts with realistic costs
+    const correctParts = (customer.correctParts || ['Engine Oil', 'Filter']).map((name, idx) => ({
+        name,
+        cost: Math.round(avgPartCost * (0.8 + Math.random() * 0.4))
+    }));
+
+    // Generate 4 options: A=correct, B=overpriced, C=underpriced, D=wrong diagnosis
+    const estimateOptions = [
+        {
+            id: 'A',
+            parts: correctParts,
+            laborHours: correctLabor,
+            laborRate: laborRate,
+            explanation: 'This is the correct diagnosis with appropriate parts and fair pricing.'
+        },
+        {
+            id: 'B',
+            parts: correctParts.map(p => ({ ...p, cost: Math.round(p.cost * 1.8) })),
+            laborHours: correctLabor + 1.5,
+            laborRate: laborRate,
+            explanation: 'OVERPRICED - Same parts but marked up 80% and padded labor hours.'
+        },
+        {
+            id: 'C',
+            parts: correctParts.slice(0, 1).map(p => ({ ...p, cost: Math.round(p.cost * 0.5) })),
+            laborHours: 0.5,
+            laborRate: laborRate,
+            explanation: 'UNDERPRICED - Missing critical parts and unrealistic labor time. This repair would fail.'
+        },
+        {
+            id: 'D',
+            parts: [
+                { name: 'Brake Pads', cost: 2500 },
+                { name: 'Brake Fluid', cost: 800 }
+            ],
+            laborHours: 2,
+            laborRate: laborRate,
+            explanation: 'WRONG DIAGNOSIS - These parts are for brakes but the actual problem is not brake-related.'
+        }
+    ];
+
+    // Shuffle options so correct answer isn't always A
+    const shuffledOptions = [...estimateOptions].sort(() => Math.random() - 0.5);
+    shuffledOptions.forEach((opt, idx) => {
+        opt.id = String.fromCharCode(65 + idx); // A, B, C, D
+    });
+    const correctAnswer = shuffledOptions.find(o => o.explanation.includes('correct diagnosis'))?.id || 'A';
+
+    return {
+        ...customer,
+        estimateOptions: shuffledOptions,
+        correctAnswer
+    };
 };
 
 export const evaluateEstimate = async (customer, estimate, notes) => {
@@ -362,18 +488,7 @@ Return ONLY this JSON (no extra text):
 }
     `;
 
-    // Try OpenRouter first (PRIMARY)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Estimate evaluated via OpenRouter (Kimi K2)");
-            return JSON.parse(text.replace(/```json|```/g, '').trim());
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             const result = await model.generateContent(prompt);
@@ -381,7 +496,18 @@ Return ONLY this JSON (no extra text):
             console.log("✅ Estimate evaluated via Gemini");
             return JSON.parse(response.text().replace(/```json|```/g, '').trim());
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Estimate evaluated via OpenRouter (Kimi K2)");
+            return JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -562,18 +688,7 @@ CRITICAL RULES:
 Reply with ONLY your spoken response as the customer:
     `;
 
-    // Try OpenRouter first (unlimited usage)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Customer response via OpenRouter (Kimi K2)");
-            return text.trim().replace(/^["']|["']$/g, '');
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             const result = await model.generateContent(prompt);
@@ -581,7 +696,18 @@ Reply with ONLY your spoken response as the customer:
             console.log("✅ Customer response via Gemini");
             return response.text().trim().replace(/^["']|["']$/g, '');
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Customer response via OpenRouter (Kimi K2)");
+            return text.trim().replace(/^["']|["']$/g, '');
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -654,18 +780,7 @@ Respond with your findings in 2-3 sentences. Be technical but clear.
 Reply with ONLY your spoken response (no quotes, no labels):
     `;
 
-    // Try OpenRouter first (PRIMARY)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Technician response via OpenRouter (Kimi K2)");
-            return text.trim().replace(/^["']|["']$/g, '');
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             const result = await model.generateContent(prompt);
@@ -673,7 +788,18 @@ Reply with ONLY your spoken response (no quotes, no labels):
             console.log("✅ Technician response via Gemini");
             return response.text().trim().replace(/^["']|["']$/g, '');
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Technician response via OpenRouter (Kimi K2)");
+            return text.trim().replace(/^["']|["']$/g, '');
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -829,18 +955,7 @@ Return ONLY this JSON (no markdown):
         return caseData;
     };
 
-    // Try OpenRouter first (PRIMARY)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Cross-system case generated via OpenRouter (Kimi K2)");
-            return processCaseData(text);
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             const result = await model.generateContent(prompt);
@@ -848,7 +963,18 @@ Return ONLY this JSON (no markdown):
             console.log("✅ Cross-system case generated via Gemini");
             return processCaseData(response.text());
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Cross-system case generated via OpenRouter (Kimi K2)");
+            return processCaseData(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -996,18 +1122,7 @@ Return ONLY this JSON:
         };
     };
 
-    // Try OpenRouter first (unlimited usage with Kimi K2)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Chain Reaction generated via OpenRouter (Kimi K2)");
-            return parseScenario(text);
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             checkRateLimit();
@@ -1017,7 +1132,18 @@ Return ONLY this JSON:
             console.log("✅ Chain Reaction generated via Gemini");
             return parseScenario(text);
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Chain Reaction generated via OpenRouter (Kimi K2)");
+            return parseScenario(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -1066,12 +1192,22 @@ Difficulty: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
 Random seed: ${randomSeed}
 
+IMPORTANT: The problem MUST be related to one of these 7 automotive systems:
+- Engine (engine components, fuel system, ignition)
+- Brakes (brake pads, rotors, calipers, brake fluid)
+- Electrical (battery, alternator, wiring, lights)
+- Suspension (shocks, struts, springs, bushings)
+- AC/Cooling (radiator, AC compressor, coolant, thermostat)
+- Transmission (gearbox, clutch, transmission fluid)
+- Steering (power steering, tie rods, rack and pinion)
+
 Create a case where the student must DIAGNOSE the problem (they don't know what's wrong).
 
 Return ONLY this JSON (no markdown):
 {
     "id": "tech-${Date.now()}",
     "vehicle": "${randomVehicle}",
+    "system": "The affected system from the 7 above (e.g., 'Brakes', 'Engine', 'Electrical')",
     "customerComplaint": "Taglish description of symptoms (what customer notices, NOT the diagnosis)",
     "initialObservations": "What the technician sees during initial visual inspection",
     "mileage": random_km_number,
@@ -1109,18 +1245,7 @@ Return ONLY this JSON (no markdown):
         return caseData;
     };
 
-    // Try OpenRouter first (PRIMARY)
-    if (openRouterAvailable) {
-        try {
-            const text = await callOpenRouter(prompt);
-            console.log("✅ Technician case generated via OpenRouter");
-            return processCaseData(text);
-        } catch (openRouterError) {
-            console.warn("⚠️ OpenRouter failed, trying Gemini:", openRouterError.message);
-        }
-    }
-
-    // Try Gemini as fallback
+    // Try Gemini first (PRIMARY)
     if (model) {
         try {
             const result = await model.generateContent(prompt);
@@ -1128,7 +1253,18 @@ Return ONLY this JSON (no markdown):
             console.log("✅ Technician case generated via Gemini");
             return processCaseData(response.text());
         } catch (geminiError) {
-            console.warn("⚠️ Gemini failed:", geminiError.message);
+            console.warn("⚠️ Gemini failed, trying OpenRouter:", geminiError.message);
+        }
+    }
+
+    // Try OpenRouter as fallback
+    if (openRouterAvailable) {
+        try {
+            const text = await callOpenRouter(prompt);
+            console.log("✅ Technician case generated via OpenRouter");
+            return processCaseData(text);
+        } catch (openRouterError) {
+            console.warn("⚠️ OpenRouter failed:", openRouterError.message);
         }
     }
 
@@ -1142,6 +1278,7 @@ const FALLBACK_TECHNICIAN_CASES = {
         {
             id: "tech-fallback-1",
             vehicle: "2019 Toyota Vios",
+            system: "Electrical",
             customerComplaint: "Hindi na nag-start yung sasakyan ko. Kahapon okay pa eh.",
             initialObservations: "No visible leaks. Battery terminals have white corrosion. Headlights dim when trying to start.",
             mileage: 45000,
@@ -1167,6 +1304,7 @@ const FALLBACK_TECHNICIAN_CASES = {
         {
             id: "tech-fallback-2",
             vehicle: "2020 Honda City",
+            system: "Brakes",
             customerComplaint: "Yung brake ko parang nagiingay, may kalampag kapag nag-brake.",
             initialObservations: "Wheels appear normal. No visible brake fluid leak. Slight brake dust buildup on front wheels.",
             mileage: 38000,
@@ -1194,6 +1332,7 @@ const FALLBACK_TECHNICIAN_CASES = {
         {
             id: "tech-fallback-3",
             vehicle: "2017 Mitsubishi Montero",
+            system: "Engine",
             customerComplaint: "Parang nagvivibrate yung sasakyan pag naka-idle, lalo na pag naka-aircon.",
             initialObservations: "Engine running but rough. No warning lights. AC clutch engaging normally.",
             mileage: 72000,
@@ -1221,6 +1360,7 @@ const FALLBACK_TECHNICIAN_CASES = {
         {
             id: "tech-fallback-4",
             vehicle: "2015 Toyota Innova",
+            system: "Engine",
             customerComplaint: "Minsan bigla na lang namamatay, tapos pag pinastart ulit okay naman. Hindi consistent.",
             initialObservations: "Engine starts and runs normally during inspection. No warning lights currently on.",
             mileage: 95000,

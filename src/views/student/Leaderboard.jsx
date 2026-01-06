@@ -3,7 +3,8 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { getLeaderboard, getOverallLeaderboard } from '../../lib/gameService';
 import { useAuth } from '../../contexts/AuthContext';
-import { Medal, Award, Crown, User, Loader2, BarChart3 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { Medal, Award, Crown, User, Loader2, BarChart3, Users } from 'lucide-react';
 
 const GAME_OPTIONS = [
     { value: 'overall', label: 'Overall (All Games)' },
@@ -30,21 +31,48 @@ export default function Leaderboard() {
     const [difficulty, setDifficulty] = useState('easy');
     const [leaderboard, setLeaderboard] = useState({ topScores: [], userRank: null, userBestScore: null });
     const [loading, setLoading] = useState(true);
+    const [userSection, setUserSection] = useState(null);
+    const [sectionLoading, setSectionLoading] = useState(true);
 
+    // Fetch user's section on mount
+    useEffect(() => {
+        const fetchUserSection = async () => {
+            if (!user?.id) {
+                setSectionLoading(false);
+                return;
+            }
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('section')
+                    .eq('id', user.id)
+                    .single();
+                setUserSection(data?.section || null);
+            } catch (err) {
+                console.error('Error fetching user section:', err);
+            } finally {
+                setSectionLoading(false);
+            }
+        };
+        fetchUserSection();
+    }, [user?.id]);
+
+    // Fetch leaderboard when dependencies change
     useEffect(() => {
         const fetchLeaderboard = async () => {
+            if (sectionLoading) return; // Wait for section to load
             setLoading(true);
             let data;
             if (gameType === 'overall') {
-                data = await getOverallLeaderboard(user?.id);
+                data = await getOverallLeaderboard(user?.id, userSection);
             } else {
-                data = await getLeaderboard(gameType, difficulty, user?.id);
+                data = await getLeaderboard(gameType, difficulty, user?.id, userSection);
             }
             setLeaderboard(data);
             setLoading(false);
         };
         fetchLeaderboard();
-    }, [gameType, difficulty, user?.id]);
+    }, [gameType, difficulty, user?.id, userSection, sectionLoading]);
 
     const isOverall = gameType === 'overall';
 
@@ -54,7 +82,20 @@ export default function Leaderboard() {
                 <BarChart3 className="text-purple-500 flex-shrink-0" size={28} />
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Leaderboard</h1>
-                    <p className="text-slate-500 text-sm">Compete with your classmates!</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        {userSection ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
+                                <Users size={12} />
+                                Section: {userSection}
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-full">
+                                <Users size={12} />
+                                All Students
+                            </span>
+                        )}
+                        <span className="text-slate-500 text-sm">Compete with your classmates!</span>
+                    </div>
                 </div>
             </div>
 

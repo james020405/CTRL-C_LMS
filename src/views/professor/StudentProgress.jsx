@@ -6,8 +6,9 @@ import { Skeleton, StudentListSkeleton } from '../../components/ui/Skeleton';
 import {
     Users, TrendingUp, Trophy, Target, Loader2,
     ChevronDown, ChevronUp, AlertTriangle, FileText, Link2, Wrench,
-    BarChart2, Award, Search, RefreshCw
+    BarChart2, Award, Search, RefreshCw, Download, FileSpreadsheet
 } from 'lucide-react';
+import { exportStudentProgress, exportToCSV } from '../../lib/exportService';
 
 // Game icons
 const GAME_ICONS = {
@@ -31,6 +32,10 @@ export default function StudentProgress() {
     const [sortBy, setSortBy] = useState('points');
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState('');
+    const [exporting, setExporting] = useState(false);
+    // Section filters
+    const [yearLevelFilter, setYearLevelFilter] = useState('all');
+    const [sectionFilter, setSectionFilter] = useState('all');
 
     useEffect(() => {
         loadStudentsProgress();
@@ -80,10 +85,10 @@ export default function StudentProgress() {
                 return;
             }
 
-            // Get profiles for enrolled students only
+            // Get profiles for enrolled students only - include student fields
             const { data: profiles, error: profilesError } = await supabase
                 .from('profiles')
-                .select('id, full_name, email, role')
+                .select('id, full_name, email, role, student_number, year_level, section, semester, school_year')
                 .in('id', enrolledUserIds);
 
             if (profilesError) {
@@ -149,9 +154,16 @@ export default function StudentProgress() {
                 return {
                     id: profile.id,
                     name: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
+                    full_name: profile.full_name,
                     email: profile.email,
                     role: profile.role || 'student',
+                    student_number: profile.student_number,
+                    year_level: profile.year_level,
+                    section: profile.section,
+                    semester: profile.semester,
+                    school_year: profile.school_year,
                     totalPoints,
+                    totalScore: totalPoints,
                     gamesPlayed,
                     gameBreakdown,
                     difficultyStats,
@@ -187,10 +199,21 @@ export default function StudentProgress() {
         setStudents(sorted);
     };
 
-    const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Get unique filter options from students
+    const yearLevelOptions = [...new Set(students.map(s => s.year_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+    const sectionOptions = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
+
+    // Apply filters first, then search
+    const filteredStudents = students
+        .filter(s => {
+            if (yearLevelFilter !== 'all' && s.year_level?.toString() !== yearLevelFilter) return false;
+            if (sectionFilter !== 'all' && s.section !== sectionFilter) return false;
+            return true;
+        })
+        .filter(s =>
+            s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            s.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
     if (loading) {
         return (
@@ -214,16 +237,16 @@ export default function StudentProgress() {
         );
     }
 
-    // Summary stats
-    const totalStudents = students.length;
-    const activeStudents = students.filter(s => s.gamesPlayed > 0).length;
-    const totalPointsAll = students.reduce((sum, s) => sum + s.totalPoints, 0);
+    // Summary stats - use filtered students
+    const totalStudents = filteredStudents.length;
+    const activeStudents = filteredStudents.filter(s => s.gamesPlayed > 0).length;
+    const totalPointsAll = filteredStudents.reduce((sum, s) => sum + s.totalPoints, 0);
     const avgPointsPerStudent = totalStudents > 0 ? Math.round(totalPointsAll / totalStudents) : 0;
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Users className="text-blue-600" />
@@ -231,10 +254,38 @@ export default function StudentProgress() {
                     </h2>
                     <p className="text-slate-500">View all students' game performance</p>
                 </div>
-                <Button onClick={loadStudentsProgress} variant="outline">
-                    <RefreshCw size={16} className="mr-2" />
-                    Refresh
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                    <Button
+                        onClick={() => {
+                            setExporting(true);
+                            try {
+                                exportStudentProgress(students);
+                            } catch (err) {
+                                console.error('Export error:', err);
+                            } finally {
+                                setExporting(false);
+                            }
+                        }}
+                        variant="outline"
+                        disabled={students.length === 0 || exporting}
+                        className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100"
+                    >
+                        {exporting ? <Loader2 size={16} className="mr-2 animate-spin" /> : <FileSpreadsheet size={16} className="mr-2" />}
+                        Export Excel
+                    </Button>
+                    <Button
+                        onClick={() => exportToCSV(students)}
+                        variant="outline"
+                        disabled={students.length === 0}
+                    >
+                        <Download size={16} className="mr-2" />
+                        CSV
+                    </Button>
+                    <Button onClick={loadStudentsProgress} variant="outline">
+                        <RefreshCw size={16} className="mr-2" />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Error Message */}
@@ -268,8 +319,33 @@ export default function StudentProgress() {
                 </Card>
             </div>
 
-            {/* Search and Sort */}
+            {/* Filters, Search and Sort */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                {/* Section Filters */}
+                <div className="flex gap-2">
+                    <select
+                        value={yearLevelFilter}
+                        onChange={(e) => setYearLevelFilter(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                    >
+                        <option value="all">All Years</option>
+                        {yearLevelOptions.map(yl => (
+                            <option key={yl} value={yl.toString()}>Year {yl}</option>
+                        ))}
+                    </select>
+                    <select
+                        value={sectionFilter}
+                        onChange={(e) => setSectionFilter(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                    >
+                        <option value="all">All Sections</option>
+                        {sectionOptions.map(sec => (
+                            <option key={sec} value={sec}>{sec}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Search */}
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input

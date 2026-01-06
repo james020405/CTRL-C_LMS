@@ -3,8 +3,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Card } from '../../components/ui/Card';
-import { X, Box, Layers, Eye } from 'lucide-react';
-import { getPartName, getPartDescription } from '../../data/partNames';
+import { X, Box, Layers, Eye, Stethoscope, AlertTriangle } from 'lucide-react';
+import { getPartName, getPartDescription, PRESET_COMPLAINTS, getRelevantSystems } from '../../data/partNames';
 
 function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) {
     const { scene, animations } = useGLTF(url);
@@ -227,6 +227,11 @@ export default function SimulatorView() {
     const [isExploded, setIsExploded] = React.useState(false);
     const [xrayMode, setXrayMode] = React.useState(false);
 
+    // Diagnostic mode state
+    const [diagnosticMode, setDiagnosticMode] = useState(false);
+    const [selectedComplaint, setSelectedComplaint] = useState(null);
+    const [relevantSystems, setRelevantSystems] = useState([]);
+
 
     const systems = [
         { id: 'engine', name: 'Engine', model: '/models/Engine.glb' },
@@ -248,26 +253,106 @@ export default function SimulatorView() {
         setXrayMode(false);
     };
 
+    // Handle diagnostic complaint selection
+    const handleComplaintSelect = (complaint) => {
+        if (complaint) {
+            setSelectedComplaint(complaint);
+            setRelevantSystems(complaint.systems);
+            // Auto-select the first relevant system
+            if (complaint.systems.length > 0) {
+                setCurrentSystem(complaint.systems[0]);
+            }
+        } else {
+            setSelectedComplaint(null);
+            setRelevantSystems([]);
+        }
+    };
+
+    // Check if current system is relevant to the complaint
+    const isSystemRelevant = (systemId) => {
+        if (!diagnosticMode || relevantSystems.length === 0) return true;
+        return relevantSystems.includes(systemId);
+    };
+
     return (
         <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row gap-4 p-4 bg-slate-50 dark:bg-slate-900">
             {/* Systems Panel */}
-            <Card className="lg:w-64 p-4 flex-shrink-0">
+            <Card className="lg:w-64 p-4 flex-shrink-0 overflow-y-auto max-h-[calc(100vh-120px)]">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
                     3D Simulator
                 </h2>
-                <div className="space-y-2">
-                    {systems.map((system) => (
-                        <button
-                            key={system.id}
-                            onClick={() => handleSystemChange(system.id)}
-                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${currentSystem === system.id
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
+
+                {/* Diagnostic Mode Toggle */}
+                <div className="mb-4">
+                    <button
+                        onClick={() => {
+                            setDiagnosticMode(!diagnosticMode);
+                            if (diagnosticMode) {
+                                setSelectedComplaint(null);
+                                setRelevantSystems([]);
+                            }
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${diagnosticMode
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-2 border-amber-400'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                    >
+                        <Stethoscope size={18} />
+                        <span className="font-medium">Diagnostic Mode</span>
+                    </button>
+                </div>
+
+                {/* Complaint Selector (shown when diagnostic mode is on) */}
+                {diagnosticMode && (
+                    <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                        <label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block mb-2">
+                            Customer Complaint
+                        </label>
+                        <select
+                            value={selectedComplaint?.id || ''}
+                            onChange={(e) => {
+                                const complaint = PRESET_COMPLAINTS.find(c => c.id === e.target.value);
+                                handleComplaintSelect(complaint || null);
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500"
                         >
-                            <span className="font-medium">{system.name}</span>
-                        </button>
-                    ))}
+                            <option value="">Select a complaint...</option>
+                            {PRESET_COMPLAINTS.map(complaint => (
+                                <option key={complaint.id} value={complaint.id}>
+                                    {complaint.label}
+                                </option>
+                            ))}
+                        </select>
+                        {selectedComplaint && (
+                            <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                                <span className="font-medium">Focus on: </span>
+                                {selectedComplaint.systems.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div className="space-y-2">
+                    {systems.map((system) => {
+                        const isRelevant = isSystemRelevant(system.id);
+                        return (
+                            <button
+                                key={system.id}
+                                onClick={() => handleSystemChange(system.id)}
+                                className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between ${currentSystem === system.id
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20'
+                                        : !isRelevant && diagnosticMode
+                                            ? 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                            >
+                                <span className="font-medium">{system.name}</span>
+                                {diagnosticMode && isRelevant && relevantSystems.length > 0 && (
+                                    <AlertTriangle size={14} className="text-amber-500" />
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Controls */}

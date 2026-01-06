@@ -10,7 +10,7 @@ import { supabase } from '../../lib/supabase';
 import {
     User, Mail, Calendar, Shield, Lock, Save, Loader2,
     CheckCircle, AlertCircle, Trophy, Brain, Gamepad2,
-    BookOpen, TrendingUp, Clock
+    BookOpen, TrendingUp, Clock, Hash, GraduationCap
 } from 'lucide-react';
 
 export default function ProfileSettings() {
@@ -23,6 +23,13 @@ export default function ProfileSettings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [fullName, setFullName] = useState('');
+
+    // Student-specific fields
+    const [studentNumber, setStudentNumber] = useState('');
+    const [yearLevel, setYearLevel] = useState('1');
+    const [section, setSection] = useState('');
+    const [semester, setSemester] = useState('1st');
+    const [schoolYear, setSchoolYear] = useState('');
 
     // Password State
     const [currentPassword, setCurrentPassword] = useState('');
@@ -65,6 +72,12 @@ export default function ProfileSettings() {
             if (data) {
                 setProfile(data);
                 setFullName(data.full_name || '');
+                // Load student fields
+                setStudentNumber(data.student_number || '');
+                setYearLevel(data.year_level?.toString() || '1');
+                setSection(data.section || '');
+                setSemester(data.semester || '1st');
+                setSchoolYear(data.school_year || '');
             } else {
                 // Create profile if doesn't exist
                 setFullName(user.user_metadata?.full_name || '');
@@ -111,15 +124,27 @@ export default function ProfileSettings() {
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
+            // Build profile data
+            const profileData = {
+                id: user.id,
+                full_name: fullName,
+                email: user.email,
+                updated_at: new Date().toISOString()
+            };
+
+            // Add student fields if this is a student profile
+            if (profile?.role === 'student' || !profile?.role) {
+                profileData.student_number = studentNumber;
+                profileData.year_level = parseInt(yearLevel);
+                profileData.section = section;
+                profileData.semester = semester;
+                profileData.school_year = schoolYear;
+            }
+
             // Update profiles table
             const { error: profileError } = await supabase
                 .from('profiles')
-                .upsert({
-                    id: user.id,
-                    full_name: fullName,
-                    email: user.email,
-                    updated_at: new Date().toISOString()
-                });
+                .upsert(profileData);
 
             if (profileError) throw profileError;
 
@@ -324,6 +349,94 @@ export default function ProfileSettings() {
                                     className="w-full"
                                 />
                             </div>
+
+                            {/* Student-specific fields */}
+                            {(profile?.role === 'student' || !profile?.role) && (
+                                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl space-y-4">
+                                    <h3 className="text-sm font-bold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                                        <GraduationCap size={16} />
+                                        Student Information
+                                    </h3>
+
+                                    {/* Student Number */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                            Student Number
+                                        </label>
+                                        <div className="relative">
+                                            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                            <Input
+                                                type="text"
+                                                value={studentNumber}
+                                                onChange={(e) => setStudentNumber(e.target.value)}
+                                                placeholder="202X-XXXXX"
+                                                className="w-full pl-10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Year Level and Section */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Year Level
+                                            </label>
+                                            <select
+                                                value={yearLevel}
+                                                onChange={(e) => setYearLevel(e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="1">1st Year</option>
+                                                <option value="2">2nd Year</option>
+                                                <option value="3">3rd Year</option>
+                                                <option value="4">4th Year</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Section
+                                            </label>
+                                            <Input
+                                                type="text"
+                                                value={section}
+                                                onChange={(e) => setSection(e.target.value)}
+                                                placeholder="e.g., BSIT-3A"
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Semester and School Year */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Semester
+                                            </label>
+                                            <select
+                                                value={semester}
+                                                onChange={(e) => setSemester(e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="1st">1st Semester</option>
+                                                <option value="2nd">2nd Semester</option>
+                                                <option value="Summer">Summer</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                School Year
+                                            </label>
+                                            <Input
+                                                type="text"
+                                                value={schoolYear}
+                                                onChange={(e) => setSchoolYear(e.target.value)}
+                                                placeholder="2025-2026"
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4 pt-2">
                                 <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">

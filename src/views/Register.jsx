@@ -1,20 +1,41 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, GraduationCap, Briefcase, Hash, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Header } from '../components/Header';
 
+// Current school year calculation
+const getCurrentSchoolYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    // School year starts in August
+    if (month >= 7) {
+        return `${year}-${year + 1}`;
+    }
+    return `${year - 1}-${year}`;
+};
+
 export default function Register() {
     const navigate = useNavigate();
     const { signUp } = useAuth();
+
+    // Role State
+    const [isStudent, setIsStudent] = useState(true);
 
     // Form State
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        // Student-specific fields
+        studentNumber: '',
+        yearLevel: '1',
+        section: '',
+        semester: '1st',
+        schoolYear: getCurrentSchoolYear()
     });
 
     // UI State
@@ -42,6 +63,12 @@ export default function Register() {
             return "Only @cvsu.edu.ph emails are allowed";
         }
 
+        // Validate student-specific fields
+        if (isStudent) {
+            if (!formData.studentNumber.trim()) return "Student Number is required";
+            if (!formData.section.trim()) return "Section is required";
+        }
+
         if (formData.password.length < 6) return "Password must be at least 6 characters";
         if (formData.password !== formData.confirmPassword) return "Passwords do not match";
         return null;
@@ -61,8 +88,8 @@ export default function Register() {
 
         try {
             const isAdmin = formData.email === import.meta.env.VITE_ADMIN_EMAIL;
-            const role = isAdmin ? 'admin' : 'professor';
-            const isApproved = isAdmin; // Admin is auto-approved, others are pending
+            const role = isAdmin ? 'admin' : (isStudent ? 'student' : 'professor');
+            const isApproved = isAdmin || isStudent; // Admin and students are auto-approved, professors need approval
 
             // 1. Sign up with Supabase Auth
             const { data: authData, error: authError } = await signUp(
@@ -78,19 +105,28 @@ export default function Register() {
                 throw new Error('This email is already registered. Please sign in instead.');
             }
 
-            // 2. Create public profile entry (for Admin Dashboard listing)
+            // 2. Create public profile entry with student-specific fields
             if (authData.user) {
+                const profileData = {
+                    id: authData.user.id,
+                    email: formData.email,
+                    full_name: formData.fullName,
+                    role: role,
+                    is_approved: isApproved
+                };
+
+                // Add student-specific fields if registering as student
+                if (isStudent) {
+                    profileData.student_number = formData.studentNumber;
+                    profileData.year_level = parseInt(formData.yearLevel);
+                    profileData.section = formData.section;
+                    profileData.semester = formData.semester;
+                    profileData.school_year = formData.schoolYear;
+                }
+
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .insert([
-                        {
-                            id: authData.user.id,
-                            email: formData.email,
-                            full_name: formData.fullName,
-                            role: role,
-                            is_approved: isApproved
-                        }
-                    ]);
+                    .insert([profileData]);
 
                 if (profileError) {
                     console.error("Error creating profile:", profileError);
@@ -132,6 +168,35 @@ export default function Register() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Role Toggle */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">I am a</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsStudent(true)}
+                                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 transition-all ${isStudent
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600'
+                                            : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
+                                        }`}
+                                >
+                                    <GraduationCap size={18} />
+                                    <span className="font-medium">Student</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsStudent(false)}
+                                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 transition-all ${!isStudent
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600'
+                                            : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
+                                        }`}
+                                >
+                                    <Briefcase size={18} />
+                                    <span className="font-medium">Professor</span>
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Full Name */}
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Full Name</label>
@@ -148,6 +213,90 @@ export default function Register() {
                                 />
                             </div>
                         </div>
+
+                        {/* Student-specific fields */}
+                        {isStudent && (
+                            <>
+                                {/* Student Number */}
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Student Number</label>
+                                    <div className="relative">
+                                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                        <input
+                                            type="text"
+                                            name="studentNumber"
+                                            placeholder="202X-XXXXX"
+                                            value={formData.studentNumber}
+                                            onChange={handleChange}
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Year Level and Section - Same Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Year Level</label>
+                                        <select
+                                            name="yearLevel"
+                                            value={formData.yearLevel}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        >
+                                            <option value="1">1st Year</option>
+                                            <option value="2">2nd Year</option>
+                                            <option value="3">3rd Year</option>
+                                            <option value="4">4th Year</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Section</label>
+                                        <input
+                                            type="text"
+                                            name="section"
+                                            placeholder="e.g., BSIT-3A"
+                                            value={formData.section}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Semester and School Year - Same Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Semester</label>
+                                        <select
+                                            name="semester"
+                                            value={formData.semester}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        >
+                                            <option value="1st">1st Semester</option>
+                                            <option value="2nd">2nd Semester</option>
+                                            <option value="Summer">Summer</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">School Year</label>
+                                        <div className="relative">
+                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            <input
+                                                type="text"
+                                                name="schoolYear"
+                                                placeholder="2025-2026"
+                                                value={formData.schoolYear}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Email */}
                         <div className="space-y-1">
