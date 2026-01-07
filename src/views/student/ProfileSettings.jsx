@@ -334,6 +334,22 @@ export default function ProfileSettings() {
                                         <Mail size={14} />
                                         {user?.email}
                                     </p>
+                                    {(studentNumber || section) && (
+                                        <div className="flex flex-wrap gap-3 mt-2">
+                                            {studentNumber && (
+                                                <p className="text-slate-500 dark:text-slate-400 flex items-center gap-1 text-sm bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                                                    <Hash size={12} />
+                                                    {studentNumber}
+                                                </p>
+                                            )}
+                                            {section && (
+                                                <p className="text-slate-500 dark:text-slate-400 flex items-center gap-1 text-sm bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                                                    <Users size={12} />
+                                                    {section}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

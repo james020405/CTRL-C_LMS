@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
-import { generateServiceCustomer, evaluateEstimate, askCustomerQuestion, askTechnicianToCheck } from '../../lib/gemini';
+import { generateServiceCustomer, evaluateEstimate, askCustomerQuestion } from '../../lib/gemini';
 import { getRemainingPlays, recordPlay, submitScore, SCORE_MULTIPLIERS } from '../../lib/gameService';
 import { useAuth } from '../../contexts/AuthContext';
 import DifficultySelector from '../../components/DifficultySelector';
@@ -15,12 +15,7 @@ const QUESTION_LIMITS = {
     hard: 1
 };
 
-// Technician command limits per difficulty
-const COMMAND_LIMITS = {
-    easy: 3,
-    medium: 2,
-    hard: 1
-};
+
 
 export default function ServiceWriter() {
     const { user } = useAuth();
@@ -43,11 +38,7 @@ export default function ServiceWriter() {
     const [askingQuestion, setAskingQuestion] = useState(false);
     const askingRef = useRef(false);
 
-    // Technician Command State
-    const [commandsRemaining, setCommandsRemaining] = useState(0);
-    const [technicianCommandInput, setTechnicianCommandInput] = useState('');
-    const [technicianCommandHistory, setTechnicianCommandHistory] = useState([]);
-    const [sendingTechCommand, setSendingTechCommand] = useState(false);
+
 
     // Load remaining plays on mount
     useEffect(() => {
@@ -72,10 +63,7 @@ export default function ServiceWriter() {
         setQuestionsRemaining(QUESTION_LIMITS[selectedDifficulty] || 3);
         setQuestionHistory([]);
         setQuestionInput('');
-        // Reset technician command state
-        setCommandsRemaining(COMMAND_LIMITS[selectedDifficulty] || 1);
-        setTechnicianCommandInput('');
-        setTechnicianCommandHistory([]);
+
 
         try {
             // Record the play and immediately update remaining plays
@@ -113,25 +101,7 @@ export default function ServiceWriter() {
         }
     };
 
-    // Handle sending a command to the technician
-    const handleTechnicianCommand = async () => {
-        if (!technicianCommandInput.trim() || commandsRemaining <= 0 || sendingTechCommand) return;
 
-        setSendingTechCommand(true);
-        try {
-            const response = await askTechnicianToCheck(customer, technicianCommandInput);
-            setTechnicianCommandHistory([...technicianCommandHistory, {
-                command: technicianCommandInput,
-                response: response
-            }]);
-            setCommandsRemaining(prev => prev - 1);
-            setTechnicianCommandInput('');
-        } catch (err) {
-            console.error("Error sending technician command:", err);
-        } finally {
-            setSendingTechCommand(false);
-        }
-    };
 
     // Calculate total for a given estimate option
     const calculateOptionTotal = (option) => {
@@ -296,57 +266,7 @@ export default function ServiceWriter() {
                                     </p>
                                 </div>
 
-                                {/* Additional Technician Commands - multiple per game based on difficulty */}
-                                <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <Stethoscope size={18} className="text-purple-600" />
-                                            <span className="font-medium text-slate-900 dark:text-white">Request Additional Diagnosis</span>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${commandsRemaining > 0
-                                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                            {commandsRemaining > 0 ? `${commandsRemaining} command${commandsRemaining !== 1 ? 's' : ''} left` : 'No commands left'}
-                                        </span>
-                                    </div>
 
-                                    {/* Command History */}
-                                    {technicianCommandHistory.length > 0 && (
-                                        <div className="mb-3 space-y-2 max-h-48 overflow-y-auto">
-                                            {technicianCommandHistory.map((cmd, idx) => (
-                                                <div key={idx} className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3 rounded-lg">
-                                                    <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wider mb-1">
-                                                        Test #{idx + 1}: "{cmd.command}"
-                                                    </p>
-                                                    <p className="text-slate-700 dark:text-slate-300 text-sm font-mono">
-                                                        {cmd.response}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Command Input */}
-                                    {commandsRemaining > 0 && (
-                                        <div className="flex gap-2">
-                                            <Input
-                                                value={technicianCommandInput}
-                                                onChange={(e) => setTechnicianCommandInput(e.target.value)}
-                                                placeholder="e.g., Check compression, Test fuel pressure, Scan for codes..."
-                                                disabled={sendingTechCommand}
-                                                onKeyPress={(e) => e.key === 'Enter' && handleTechnicianCommand()}
-                                                className="flex-1"
-                                            />
-                                            <Button
-                                                onClick={handleTechnicianCommand}
-                                                disabled={!technicianCommandInput.trim() || sendingTechCommand}
-                                                className="bg-purple-600 hover:bg-purple-700 px-4"
-                                            >
-                                                {sendingTechCommand ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
 
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 italic">
                                     Based on the diagnosis, determine the parts needed and create your estimate.

@@ -13,18 +13,12 @@ SELECT
     id,
     email,
     COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
-    CASE 
-        WHEN email LIKE '%@cvsu.edu.ph' THEN 'professor'
-        ELSE 'student'
-    END
+    COALESCE(raw_user_meta_data->>'role', 'student')
 FROM auth.users
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
-    role = CASE 
-        WHEN EXCLUDED.email LIKE '%@cvsu.edu.ph' THEN 'professor'
-        ELSE COALESCE(profiles.role, 'student')
-    END;
+    role = COALESCE(EXCLUDED.role, profiles.role, 'student'); -- Prefer metadata role, then existing, then student
 
 -- 3. Create or replace the function to auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -35,10 +29,7 @@ BEGIN
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-        CASE 
-            WHEN NEW.email LIKE '%@cvsu.edu.ph' THEN 'professor'
-            ELSE 'student'
-        END
+        COALESCE(NEW.raw_user_meta_data->>'role', 'student')
     )
     ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,

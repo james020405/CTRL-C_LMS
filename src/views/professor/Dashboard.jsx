@@ -139,7 +139,7 @@ export default function ProfessorDashboard() {
         { id: 'courses', label: 'Course Management', icon: BookOpen },
         { id: 'activities', label: 'Activities', icon: ClipboardList },
         { id: 'progress', label: 'Student Progress', icon: BarChart3 },
-        { id: 'insights', label: 'AI Insights', icon: Brain, isNew: true },
+        { id: 'insights', label: 'AI Insights', icon: Brain },
         { id: 'ai-usage', label: 'AI Usage', icon: Zap },
     ];
 
@@ -230,7 +230,12 @@ export default function ProfessorDashboard() {
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => {
+                                        setActiveTab(tab.id);
+                                        // Clear course selections when switching tabs
+                                        setSelectedCourse(null);
+                                        setActivityCourse(null);
+                                    }}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${activeTab === tab.id
                                         ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'

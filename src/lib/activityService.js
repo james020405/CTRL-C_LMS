@@ -223,6 +223,70 @@ export const getStudentActivities = async (courseId, studentId) => {
 };
 
 /**
+ * Get ALL activities from ALL enrolled courses (unified student view)
+ */
+export const getAllStudentActivities = async (studentId) => {
+    // First get all courses the student is enrolled in
+    const { data: enrollments, error: enrollError } = await supabase
+        .from('course_enrollments')
+        .select('course_id')
+        .eq('user_id', studentId);
+
+    if (enrollError) throw enrollError;
+    if (!enrollments || enrollments.length === 0) return [];
+
+    const courseIds = enrollments.map(e => e.course_id);
+
+    // Get all activities from these courses with course info
+    const { data: activities, error: actError } = await supabase
+        .from('activities')
+        .select(`
+            *,
+            courses (
+                id,
+                title
+            )
+        `)
+        .in('course_id', courseIds)
+        .order('deadline', { ascending: true });
+
+    if (actError) throw actError;
+    if (!activities || activities.length === 0) return [];
+
+    // Get student's submissions for all these activities
+    const activityIds = activities.map(a => a.id);
+
+    const { data: submissions, error: subError } = await supabase
+        .from('activity_submissions')
+        .select('*')
+        .eq('student_id', studentId)
+        .in('activity_id', activityIds);
+
+    if (subError) throw subError;
+
+    // Merge activities with submission status and course info
+    return activities.map(activity => {
+        const submission = submissions?.find(s => s.activity_id === activity.id);
+        const now = new Date();
+        const deadline = new Date(activity.deadline);
+        const isOverdue = now > deadline;
+
+        return {
+            ...activity,
+            courseName: activity.courses?.title || 'Unknown Course',
+            submission: submission || null,
+            isOverdue,
+            canSubmit: !isOverdue || activity.allow_late,
+            status: submission
+                ? submission.status
+                : isOverdue
+                    ? 'overdue'
+                    : 'pending'
+        };
+    });
+};
+
+/**
  * Submit to an activity
  */
 export const submitActivity = async (activityId, studentId, content, fileUrl = null) => {

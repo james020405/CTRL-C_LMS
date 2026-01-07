@@ -37,6 +37,7 @@ const Leaderboard = React.lazy(() => import('./views/student/Leaderboard'));
 const ProfileSettings = React.lazy(() => import('./views/student/ProfileSettings'));
 const GamesHub = React.lazy(() => import('./views/student/GamesHub'));
 const StudentActivities = React.lazy(() => import('./views/student/StudentActivities'));
+const ActivityDetail = React.lazy(() => import('./views/student/ActivityDetail'));
 
 /**
  * Loading fallback component for lazy-loaded routes
@@ -92,7 +93,8 @@ function App() {
                                     <Route path="progress" element={<ProgressDashboard />} />
                                     <Route path="leaderboard" element={<Leaderboard />} />
                                     <Route path="profile" element={<ProfileSettings />} />
-                                    <Route path="course/:courseId/activities" element={<StudentActivities />} />
+                                    <Route path="activities" element={<StudentActivities />} />
+                                    <Route path="activity/:activityId" element={<ActivityDetail />} />
                                 </Route>
                             </Route>
                         </Routes>

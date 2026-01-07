@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Activity, PlayCircle, LogOut, BrainCircuit, AlertTriangle, FileText, Trophy, Settings, Link2, Wrench, TrendingUp, Search } from 'lucide-react';
+import { LayoutDashboard, Activity, PlayCircle, LogOut, BrainCircuit, AlertTriangle, FileText, Trophy, Settings, Link2, Wrench, TrendingUp, Search, ClipboardList } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/Sidebar';
 import { cn } from '../../lib/utils';
@@ -29,6 +29,7 @@ export default function StudentLayout() {
             title: 'Learn',
             items: [
                 { href: '/student/dashboard', icon: <LayoutDashboard className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Dashboard' },
+                { href: '/student/activities', icon: <ClipboardList className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Activities' },
                 { href: '/student/systems', icon: <Activity className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: '7 Systems' },
                 { href: '/student/flashcards', icon: <BrainCircuit className="text-slate-700 dark:text-slate-200 h-5 w-5 flex-shrink-0" aria-hidden="true" />, label: 'Flashcards' },
             ]

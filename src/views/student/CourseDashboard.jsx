@@ -223,14 +223,15 @@ export default function StudentDashboard() {
     };
 
     const getFirstName = () => {
+        let name = 'Student';
         if (profile?.full_name) {
-            return profile.full_name.split(' ')[0];
-        }
-        if (user?.email) {
+            name = profile.full_name.split(' ')[0];
+        } else if (user?.email) {
             const username = user.email.split('@')[0];
-            return username.split(/[._]/)[0];
+            name = username.split(/[._]/)[0];
         }
-        return 'Student';
+        // Capitalize first letter
+        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
     };
     const displayName = getFirstName();
 

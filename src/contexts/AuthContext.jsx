@@ -7,12 +7,42 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Fetch user profile from profiles table
+    const fetchProfile = async (userId) => {
+        if (!userId) {
+            setProfile(null);
+            return;
+        }
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching profile:', error);
+                setProfile(null);
+            } else {
+                setProfile(data);
+            }
+        } catch (err) {
+            console.error('Profile fetch error:', err);
+            setProfile(null);
+        }
+    };
 
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session }, error }) => {
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                fetchProfile(currentUser.id);
+            }
             setLoading(false);
         });
 
@@ -27,7 +57,13 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                fetchProfile(currentUser.id);
+            } else {
+                setProfile(null);
+            }
             setLoading(false);
         });
 
@@ -61,8 +97,15 @@ export const AuthProvider = ({ children }) => {
         return supabase.auth.signOut();
     };
 
+    // Function to refresh profile data
+    const refreshProfile = () => {
+        if (user?.id) {
+            fetchProfile(user.id);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, signUp, signIn, signOut, loading }}>
+        <AuthContext.Provider value={{ user, profile, signUp, signIn, signOut, loading, refreshProfile }}>
             {!loading && children}
         </AuthContext.Provider>
     );

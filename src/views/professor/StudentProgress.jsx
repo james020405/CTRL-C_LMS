@@ -6,7 +6,7 @@ import { Skeleton, StudentListSkeleton } from '../../components/ui/Skeleton';
 import {
     Users, TrendingUp, Trophy, Target, Loader2,
     ChevronDown, ChevronUp, AlertTriangle, FileText, Link2, Wrench,
-    BarChart2, Award, Search, RefreshCw, Download, FileSpreadsheet
+    BarChart2, Award, Search, RefreshCw, Download, FileSpreadsheet, Zap
 } from 'lucide-react';
 import { exportStudentProgress, exportToCSV } from '../../lib/exportService';
 
@@ -33,9 +33,13 @@ export default function StudentProgress() {
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState('');
     const [exporting, setExporting] = useState(false);
-    // Section filters
+    // Course and section filters
+    const [courses, setCourses] = useState([]);
+    const [courseFilter, setCourseFilter] = useState('all');
     const [yearLevelFilter, setYearLevelFilter] = useState('all');
     const [sectionFilter, setSectionFilter] = useState('all');
+    // Store which students are enrolled in which courses
+    const [courseEnrollments, setCourseEnrollments] = useState({});
 
     useEffect(() => {
         loadStudentsProgress();
@@ -50,31 +54,43 @@ export default function StudentProgress() {
             const { data: { user: authUser } } = await supabase.auth.getUser();
             if (!authUser) throw new Error('Not authenticated');
 
-            // Get professor's courses
-            const { data: courses, error: coursesError } = await supabase
+            // Get professor's courses with titles
+            const { data: coursesData, error: coursesError } = await supabase
                 .from('courses')
-                .select('id')
+                .select('id, title')
                 .eq('professor_id', authUser.id);
 
             if (coursesError) throw coursesError;
 
-            if (!courses || courses.length === 0) {
+            if (!coursesData || coursesData.length === 0) {
                 setStudents([]);
+                setCourses([]);
                 setLoading(false);
                 return;
             }
 
-            const courseIds = courses.map(c => c.id);
+            setCourses(coursesData);
+            const courseIds = coursesData.map(c => c.id);
 
-            // Get enrollments for professor's courses
+            // Get enrollments for professor's courses - now with course_id
             const { data: enrollments, error: enrollError } = await supabase
                 .from('course_enrollments')
-                .select('user_id')
+                .select('user_id, course_id')
                 .in('course_id', courseIds);
 
             if (enrollError) {
                 console.log('Enrollments query error:', enrollError.message);
             }
+
+            // Build course enrollment map
+            const enrollmentMap = {};
+            enrollments?.forEach(e => {
+                if (!enrollmentMap[e.user_id]) {
+                    enrollmentMap[e.user_id] = [];
+                }
+                enrollmentMap[e.user_id].push(e.course_id);
+            });
+            setCourseEnrollments(enrollmentMap);
 
             // Get unique enrolled user IDs
             const enrolledUserIds = [...new Set(enrollments?.map(e => e.user_id) || [])];
@@ -114,6 +130,30 @@ export default function StudentProgress() {
 
             if (!playsError) plays = playsData || [];
 
+            // Get activity submissions for enrolled students (to show grades)
+            let activitySubmissions = [];
+            const { data: activitiesData } = await supabase
+                .from('activities')
+                .select('id, max_score')
+                .in('course_id', courseIds);
+
+            if (activitiesData && activitiesData.length > 0) {
+                const activityIds = activitiesData.map(a => a.id);
+                const { data: submissionsData } = await supabase
+                    .from('activity_submissions')
+                    .select('student_id, activity_id, score, status')
+                    .in('activity_id', activityIds)
+                    .in('student_id', enrolledUserIds);
+
+                activitySubmissions = submissionsData || [];
+            }
+
+            // Create activity max scores map
+            const activityMaxScores = {};
+            activitiesData?.forEach(a => {
+                activityMaxScores[a.id] = a.max_score;
+            });
+
             console.log('Enrolled students:', enrolledUserIds.length, 'Scores:', scores.length);
 
             // Aggregate data per student
@@ -151,6 +191,18 @@ export default function StudentProgress() {
                     ? new Date(Math.max(...studentScores.map(s => new Date(s.created_at))))
                     : null;
 
+                // Activity grades for this student
+                const studentActivitySubs = activitySubmissions.filter(s => s.student_id === profile.id && s.status === 'graded');
+                let activityAvg = null;
+                if (studentActivitySubs.length > 0) {
+                    let totalPercent = 0;
+                    studentActivitySubs.forEach(sub => {
+                        const maxScore = activityMaxScores[sub.activity_id] || 100;
+                        totalPercent += (sub.score / maxScore) * 100;
+                    });
+                    activityAvg = Math.round(totalPercent / studentActivitySubs.length);
+                }
+
                 return {
                     id: profile.id,
                     name: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
@@ -167,7 +219,9 @@ export default function StudentProgress() {
                     gamesPlayed,
                     gameBreakdown,
                     difficultyStats,
-                    lastActivity
+                    lastActivity,
+                    activityAvg,
+                    activityCount: studentActivitySubs.length
                 };
             });
 
@@ -199,6 +253,44 @@ export default function StudentProgress() {
         setStudents(sorted);
     };
 
+    // Export student data for Insight Tool
+    const handleExportForInsight = () => {
+        if (students.length === 0) {
+            alert('No students to export');
+            return;
+        }
+
+        const exportData = students.map(s => ({
+            studentId: s.student_number,
+            studentName: s.name,
+            email: s.email,
+            yearLevel: s.year_level,
+            section: s.section,
+            // Game stats
+            totalPoints: s.totalPoints,
+            gamesPlayed: s.gamesPlayed,
+            gameBreakdown: s.gameBreakdown,
+            difficultyStats: s.difficultyStats,
+            lastActivity: s.lastActivity?.toISOString() || null,
+            // Activity grades
+            activityAvg: s.activityAvg,
+            activityCount: s.activityCount
+        }));
+
+        // Download as JSON
+        const blob = new Blob([JSON.stringify({
+            students: exportData,
+            exportedAt: new Date().toISOString(),
+            source: 'CTRL-C LMS'
+        }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lms_export_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Get unique filter options from students
     const yearLevelOptions = [...new Set(students.map(s => s.year_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
     const sectionOptions = [...new Set(students.map(s => s.section).filter(Boolean))].sort();
@@ -206,6 +298,11 @@ export default function StudentProgress() {
     // Apply filters first, then search
     const filteredStudents = students
         .filter(s => {
+            // Course filter - check if student is enrolled in selected course
+            if (courseFilter !== 'all') {
+                const studentCourses = courseEnrollments[s.id] || [];
+                if (!studentCourses.includes(courseFilter)) return false;
+            }
             if (yearLevelFilter !== 'all' && s.year_level?.toString() !== yearLevelFilter) return false;
             if (sectionFilter !== 'all' && s.section !== sectionFilter) return false;
             return true;
@@ -285,6 +382,15 @@ export default function StudentProgress() {
                         <RefreshCw size={16} className="mr-2" />
                         Refresh
                     </Button>
+                    <Button
+                        onClick={handleExportForInsight}
+                        variant="outline"
+                        disabled={students.length === 0}
+                        className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100"
+                    >
+                        <Download size={16} className="mr-2" />
+                        Export for Insight
+                    </Button>
                 </div>
             </div>
 
@@ -321,8 +427,19 @@ export default function StudentProgress() {
 
             {/* Filters, Search and Sort */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                {/* Section Filters */}
-                <div className="flex gap-2">
+                {/* Course and Section Filters */}
+                <div className="flex gap-2 flex-wrap">
+                    {/* Course Filter - First! */}
+                    <select
+                        value={courseFilter}
+                        onChange={(e) => setCourseFilter(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-slate-900 dark:text-white text-sm font-medium"
+                    >
+                        <option value="all">All Courses</option>
+                        {courses.map(course => (
+                            <option key={course.id} value={course.id}>{course.title}</option>
+                        ))}
+                    </select>
                     <select
                         value={yearLevelFilter}
                         onChange={(e) => setYearLevelFilter(e.target.value)}
@@ -378,9 +495,10 @@ export default function StudentProgress() {
                 {/* Table Header - Desktop */}
                 <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     <div className="col-span-1">Rank</div>
-                    <div className="col-span-4">User</div>
+                    <div className="col-span-3">User</div>
                     <div className="col-span-2 text-center">Points</div>
-                    <div className="col-span-2 text-center">Games</div>
+                    <div className="col-span-1 text-center">Games</div>
+                    <div className="col-span-2 text-center">Activity Avg</div>
                     <div className="col-span-2 text-center">Last Active</div>
                     <div className="col-span-1"></div>
                 </div>
@@ -431,7 +549,7 @@ export default function StudentProgress() {
                                         #{index + 1}
                                     </span>
                                 </div>
-                                <div className="hidden md:block col-span-4">
+                                <div className="hidden md:block col-span-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
                                             {student.name[0]?.toUpperCase()}
@@ -445,8 +563,18 @@ export default function StudentProgress() {
                                 <div className="hidden md:block col-span-2 text-center">
                                     <span className="font-bold text-yellow-600">{student.totalPoints.toLocaleString()}</span>
                                 </div>
-                                <div className="hidden md:block col-span-2 text-center">
+                                <div className="hidden md:block col-span-1 text-center">
                                     <span className="font-medium text-slate-700 dark:text-slate-300">{student.gamesPlayed}</span>
+                                </div>
+                                <div className="hidden md:block col-span-2 text-center">
+                                    {student.activityAvg !== null ? (
+                                        <span className={`font-bold ${student.activityAvg >= 60 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {student.activityAvg}%
+                                            <span className="text-xs font-normal text-slate-500 ml-1">({student.activityCount})</span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-400 text-sm">No grades</span>
+                                    )}
                                 </div>
                                 <div className="hidden md:block col-span-2 text-center text-sm text-slate-500">
                                     {student.lastActivity
@@ -520,8 +648,9 @@ export default function StudentProgress() {
                             )}
                         </div>
                     ))
-                )}
-            </Card>
-        </div>
+                )
+                }
+            </Card >
+        </div >
     );
 }
