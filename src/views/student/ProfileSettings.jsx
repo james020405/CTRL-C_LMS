@@ -134,6 +134,13 @@ export default function ProfileSettings() {
 
             // Add student fields if this is a student profile
             if (profile?.role === 'student' || !profile?.role) {
+                // Validate student number format
+                const studentNumRegex = /^202[3-9]-\d{5}$/;
+                if (studentNumber && !studentNumRegex.test(studentNumber.trim())) {
+                    toast.error('Student Number must be in format 2023-XXXXX');
+                    setSaving(false);
+                    return;
+                }
                 profileData.student_number = studentNumber;
                 profileData.year_level = parseInt(yearLevel);
                 profileData.section = section;
