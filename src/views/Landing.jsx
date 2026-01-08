@@ -20,8 +20,9 @@ export default function Landing() {
             const type = hashParams.get('type');
             const error = hashParams.get('error');
             const errorCode = hashParams.get('error_code');
+            const accessToken = hashParams.get('access_token');
 
-            console.log('Landing: Hash detected', { type, error, errorCode });
+            console.log('Landing: Hash detected', { type, error, errorCode, hasAccessToken: !!accessToken });
 
             // If this is a recovery (password reset) flow, redirect to reset-password
             if (type === 'recovery') {
@@ -35,6 +36,13 @@ export default function Landing() {
                 return;
             }
 
+            // If there's an access token but no type, it might be email confirmation
+            // (Supabase sometimes doesn't include type in the hash)
+            if (accessToken && !error) {
+                navigate('/email-confirmed', { replace: true });
+                return;
+            }
+
             // If there's an auth error, redirect to login with error info
             if (error) {
                 navigate('/login' + window.location.hash, { replace: true });
@@ -42,11 +50,21 @@ export default function Landing() {
             }
         }
 
-        // Listen for PASSWORD_RECOVERY event
+        // Listen for auth events
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             console.log('Landing: Auth event', event);
             if (event === 'PASSWORD_RECOVERY') {
                 navigate('/reset-password', { replace: true });
+            }
+            // Email confirmation triggers SIGNED_IN - check if user just confirmed
+            if (event === 'SIGNED_IN' && session?.user) {
+                const createdAt = new Date(session.user.created_at);
+                const now = new Date();
+                const diffSeconds = (now - createdAt) / 1000;
+                // If user was created within last 2 minutes, likely just confirmed email
+                if (diffSeconds < 120) {
+                    navigate('/email-confirmed', { replace: true });
+                }
             }
         });
 
