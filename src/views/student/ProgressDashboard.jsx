@@ -154,25 +154,21 @@ function BadgesModal({ isOpen, onClose, earnedBadges }) {
 // Game breakdown row
 function GameBreakdownRow({ gameType, stats }) {
     const game = GAME_LABELS[gameType];
-    const GameIcon = GAME_ICONS[gameType];
     if (!game) return null;
 
     return (
-        <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-            <div className={`w-10 h-10 ${game.color} rounded-xl flex items-center justify-center`}>
-                <GameIcon size={20} className="currentColor" />
-            </div>
-            <div className="flex-1">
+        <div className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+            <div>
                 <p className="font-medium text-slate-900 dark:text-white">{game.name}</p>
                 <p className="text-xs text-slate-500">
                     {stats.gamesPlayed} games • Best: {stats.bestScore}
                 </p>
             </div>
             <div className="text-right">
-                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                <span className="font-bold text-slate-900 dark:text-white">
                     {stats.totalPoints}
-                </p>
-                <p className="text-xs text-slate-500">points</p>
+                </span>
+                <span className="text-xs text-slate-500 ml-1">pts</span>
             </div>
         </div>
     );
@@ -295,8 +291,7 @@ export default function ProgressDashboard() {
 
                     {/* Game Breakdown */}
                     <Card className="p-6">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-                            <Flame size={20} className="text-orange-600" />
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
                             Points by Game
                         </h2>
                         <div className="space-y-2">
