@@ -7,7 +7,7 @@ import TopicManager from './TopicManager';
 import ActivityManager from './ActivityManager';
 import StudentProgress from './StudentProgress';
 import StudentInsights from './StudentInsights';
-import AIUsageStats from './AIUsageStats';
+
 import { Card } from '../../components/ui/Card';
 import {
     BookOpen, Users, TrendingUp, Sparkles, FileText,
@@ -140,7 +140,7 @@ export default function ProfessorDashboard() {
         { id: 'activities', label: 'Activities', icon: ClipboardList },
         { id: 'progress', label: 'Student Progress', icon: BarChart3 },
         { id: 'insights', label: 'AI Insights', icon: Brain },
-        { id: 'ai-usage', label: 'AI Usage', icon: Zap },
+
     ];
 
     const statCards = [
@@ -287,8 +287,7 @@ export default function ProfessorDashboard() {
                     <StudentProgress />
                 ) : activeTab === 'insights' ? (
                     <StudentInsights />
-                ) : activeTab === 'ai-usage' ? (
-                    <AIUsageStats />
+
                 ) : null}
             </main>
         </div>
