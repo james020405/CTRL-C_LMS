@@ -691,6 +691,8 @@ export default function ProfileSettings() {
                     </Card>
                 </div>
 
+
+
                 {/* Right Column - Stats */}
                 <div className="space-y-6">
                     {/* Stats Overview */}
@@ -701,51 +703,21 @@ export default function ProfileSettings() {
                         </h2>
 
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <Brain className="text-blue-600" size={20} />
-                                    <span className="text-slate-700 dark:text-slate-300">Flashcards Created</span>
-                                </div>
-                                <span className="font-bold text-blue-600">{stats.flashcardsCreated}</span>
+                            <div className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl">
+                                <span className="text-slate-700 dark:text-slate-300">Flashcards Created</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{stats.flashcardsCreated}</span>
                             </div>
 
-                            <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <Gamepad2 className="text-purple-600" size={20} />
-                                    <span className="text-slate-700 dark:text-slate-300">Games Played</span>
-                                </div>
-                                <span className="font-bold text-purple-600">{stats.gamesPlayed}</span>
+                            <div className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl">
+                                <span className="text-slate-700 dark:text-slate-300">Games Played</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{stats.gamesPlayed}</span>
                             </div>
 
-                            <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <Trophy className="text-yellow-600" size={20} />
-                                    <span className="text-slate-700 dark:text-slate-300">Total Score</span>
-                                </div>
-                                <span className="font-bold text-yellow-600">{stats.totalGameScore.toLocaleString()}</span>
+                            <div className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl">
+                                <span className="text-slate-700 dark:text-slate-300">Total Score</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{stats.totalGameScore.toLocaleString()}</span>
                             </div>
                         </div>
-                    </Card>
-
-                    {/* Quick Tips */}
-                    <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
-                        <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-3">
-                            💡 Tips for Success
-                        </h2>
-                        <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-                            <li className="flex items-start gap-2">
-                                <Clock size={14} className="mt-1 flex-shrink-0" />
-                                Review flashcards daily for best retention
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <BookOpen size={14} className="mt-1 flex-shrink-0" />
-                                Complete all 7 systems to master automotive basics
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <Gamepad2 size={14} className="mt-1 flex-shrink-0" />
-                                Play games on Hard mode for maximum points
-                            </li>
-                        </ul>
                     </Card>
                 </div>
             </div>
@@ -772,6 +744,6 @@ export default function ProfileSettings() {
                     />
                 </div>
             </ConfirmDialog>
-        </div>
+        </div >
     );
 }
