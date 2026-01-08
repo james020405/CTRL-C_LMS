@@ -31,6 +31,10 @@ export default function AdminDashboard() {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+            console.log('AdminDashboard: Fetched users', data);
+            if (data && data.length > 0) {
+                console.log('AdminDashboard: First user sample keys:', Object.keys(data[0]));
+            }
             setUsers(data || []);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -57,7 +61,7 @@ export default function AdminDashboard() {
             toast.success('Role updated successfully');
         } catch (error) {
             console.error('Error updating role:', error);
-            toast.error('Failed to update role.');
+            toast.error('Failed to update role: ' + (error.message || 'Unknown error'));
         } finally {
             setUpdatingRole(null);
         }
@@ -68,13 +72,16 @@ export default function AdminDashboard() {
             // Get the user's current role
             const user = users.find(u => u.id === userId);
 
+            // Determine role safely
+            const targetRole = user?.role === 'admin' ? 'admin' : (user?.role || 'professor');
+            console.log(`AdminDashboard: Approving user ${userId} with role ${targetRole}`);
+
             // Update both is_approved and ensure role is set
             const { error } = await supabase
                 .from('profiles')
                 .update({
                     is_approved: true,
-                    // Keep current role if it's professor, otherwise default to professor for approval
-                    role: user?.role === 'admin' ? 'admin' : (user?.role || 'professor')
+                    role: targetRole
                 })
                 .eq('id', userId);
 
@@ -85,13 +92,13 @@ export default function AdminDashboard() {
                 u.id === userId ? {
                     ...u,
                     is_approved: true,
-                    role: u.role === 'admin' ? 'admin' : (u.role || 'professor')
+                    role: targetRole
                 } : u
             ));
             toast.success('User approved');
         } catch (error) {
             console.error('Error approving user:', error);
-            toast.error('Failed to approve user.');
+            toast.error('Failed to approve user: ' + (error.message || 'Check console for details'));
         }
     };
 
