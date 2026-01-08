@@ -10,7 +10,7 @@ import { supabase } from '../../lib/supabase';
 import {
     User, Mail, Calendar, Shield, Lock, Save, Loader2,
     CheckCircle, AlertCircle, Trophy, Brain, Gamepad2,
-    BookOpen, TrendingUp, Clock, Hash, GraduationCap
+    BookOpen, TrendingUp, Clock, Hash, GraduationCap, Users
 } from 'lucide-react';
 
 export default function ProfileSettings() {
