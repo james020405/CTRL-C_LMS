@@ -29,6 +29,12 @@ export default function Landing() {
                 return;
             }
 
+            // If this is email confirmation (signup), redirect to email-confirmed
+            if (type === 'signup' || type === 'email_change' || type === 'magiclink') {
+                navigate('/email-confirmed', { replace: true });
+                return;
+            }
+
             // If there's an auth error, redirect to login with error info
             if (error) {
                 navigate('/login' + window.location.hash, { replace: true });

@@ -66,10 +66,10 @@ export default function Register() {
         // Validate student-specific fields
         if (isStudent) {
             if (!formData.studentNumber.trim()) return "Student Number is required";
-            // Validate student number format: 2023-XXXXX (9 digits total)
-            const studentNumRegex = /^202[3-9]-\d{5}$/;
+            // Validate student number format: 9 digits starting with 2023-2029
+            const studentNumRegex = /^202[3-9]\d{5}$/;
             if (!studentNumRegex.test(formData.studentNumber.trim())) {
-                return "Student Number must be in format 2023-XXXXX (e.g., 2023-12345)";
+                return "Student Number must be exactly 9 digits (e.g., 202312345)";
             }
             if (!formData.section.trim()) return "Section is required";
         }
@@ -230,9 +230,14 @@ export default function Register() {
                                         <input
                                             type="text"
                                             name="studentNumber"
-                                            placeholder="2023-12345"
+                                            placeholder="202312345"
                                             value={formData.studentNumber}
-                                            onChange={handleChange}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                                setFormData({ ...formData, studentNumber: val });
+                                                if (error) setError('');
+                                            }}
+                                            maxLength={9}
                                             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                                             required
                                         />

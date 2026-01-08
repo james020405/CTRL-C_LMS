@@ -134,10 +134,10 @@ export default function ProfileSettings() {
 
             // Add student fields if this is a student profile
             if (profile?.role === 'student' || !profile?.role) {
-                // Validate student number format
-                const studentNumRegex = /^202[3-9]-\d{5}$/;
+                // Validate student number format: 9 digits starting with 2023-2029
+                const studentNumRegex = /^202[3-9]\d{5}$/;
                 if (studentNumber && !studentNumRegex.test(studentNumber.trim())) {
-                    toast.error('Student Number must be in format 2023-XXXXX');
+                    toast.error('Student Number must be exactly 9 digits (e.g., 202312345)');
                     setSaving(false);
                     return;
                 }
@@ -391,8 +391,9 @@ export default function ProfileSettings() {
                                             <Input
                                                 type="text"
                                                 value={studentNumber}
-                                                onChange={(e) => setStudentNumber(e.target.value)}
-                                                placeholder="202X-XXXXX"
+                                                onChange={(e) => setStudentNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                                                placeholder="202312345"
+                                                maxLength={9}
                                                 className="w-full pl-10"
                                             />
                                         </div>
