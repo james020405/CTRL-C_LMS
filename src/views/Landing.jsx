@@ -52,16 +52,17 @@ export default function Landing() {
 
         // Listen for auth events
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Landing: Auth event', event);
+            console.log('Landing: Auth event', event, session?.user?.email_confirmed_at);
             if (event === 'PASSWORD_RECOVERY') {
                 navigate('/reset-password', { replace: true });
             }
-            // Email confirmation triggers SIGNED_IN - check if user just confirmed
-            if (event === 'SIGNED_IN' && session?.user) {
-                const createdAt = new Date(session.user.created_at);
+            // Email confirmation triggers SIGNED_IN - check if email was just confirmed
+            if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+                const confirmedAt = new Date(session.user.email_confirmed_at);
                 const now = new Date();
-                const diffSeconds = (now - createdAt) / 1000;
-                // If user was created within last 2 minutes, likely just confirmed email
+                const diffSeconds = (now - confirmedAt) / 1000;
+                console.log('Landing: Email confirmed', diffSeconds, 'seconds ago');
+                // If email was confirmed within last 2 minutes, redirect to confirmation page
                 if (diffSeconds < 120) {
                     navigate('/email-confirmed', { replace: true });
                 }
