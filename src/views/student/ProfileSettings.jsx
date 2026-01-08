@@ -40,6 +40,12 @@ export default function ProfileSettings() {
     const [verifyingPassword, setVerifyingPassword] = useState(false);
     const [passwordError, setPasswordError] = useState('');
 
+    // Student Info Lock State
+    const [infoUnlocked, setInfoUnlocked] = useState(false);
+    const [unlockPassword, setUnlockPassword] = useState('');
+    const [unlockError, setUnlockError] = useState('');
+    const [unlocking, setUnlocking] = useState(false);
+
     // Delete Account State
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -118,6 +124,28 @@ export default function ProfileSettings() {
             });
         } catch (err) {
             console.error('Error loading stats:', err);
+        }
+    };
+
+    const handleUnlockInfo = async (e) => {
+        e.preventDefault();
+        setUnlocking(true);
+        setUnlockError('');
+
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: unlockPassword
+            });
+
+            if (error) throw error;
+            setInfoUnlocked(true);
+            toast.success('Student information unlocked');
+        } catch (err) {
+            setUnlockError('Incorrect password');
+        } finally {
+            setUnlocking(false);
+            setUnlockPassword('');
         }
     };
 
@@ -381,84 +409,135 @@ export default function ProfileSettings() {
                                         Student Information
                                     </h3>
 
-                                    {/* Student Number */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                            Student Number
-                                        </label>
-                                        <div className="relative">
-                                            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                            <Input
-                                                type="text"
-                                                value={studentNumber}
-                                                onChange={(e) => setStudentNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                                                placeholder="202312345"
-                                                maxLength={9}
-                                                className="w-full pl-10"
-                                            />
-                                        </div>
-                                    </div>
+                                    {infoUnlocked ? (
+                                        <>
+                                            {/* Student Number */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    Student Number
+                                                </label>
+                                                <div className="relative">
+                                                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                                    <Input
+                                                        type="text"
+                                                        value={studentNumber}
+                                                        onChange={(e) => setStudentNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                                                        placeholder="202312345"
+                                                        maxLength={9}
+                                                        className="w-full pl-10"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    {/* Year Level and Section */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                Year Level
-                                            </label>
-                                            <select
-                                                value={yearLevel}
-                                                onChange={(e) => setYearLevel(e.target.value)}
-                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="1">1st Year</option>
-                                                <option value="2">2nd Year</option>
-                                                <option value="3">3rd Year</option>
-                                                <option value="4">4th Year</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                Section
-                                            </label>
-                                            <Input
-                                                type="text"
-                                                value={section}
-                                                onChange={(e) => setSection(e.target.value)}
-                                                placeholder="e.g., BSIT-3A"
-                                                className="w-full"
-                                            />
-                                        </div>
-                                    </div>
+                                            {/* Year Level and Section */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Year Level
+                                                    </label>
+                                                    <select
+                                                        value={yearLevel}
+                                                        onChange={(e) => setYearLevel(e.target.value)}
+                                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
+                                                        <option value="1">1st Year</option>
+                                                        <option value="2">2nd Year</option>
+                                                        <option value="3">3rd Year</option>
+                                                        <option value="4">4th Year</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Section
+                                                    </label>
+                                                    <Input
+                                                        type="text"
+                                                        value={section}
+                                                        onChange={(e) => setSection(e.target.value)}
+                                                        placeholder="e.g., BSIT-3A"
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    {/* Semester and School Year */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                Semester
-                                            </label>
-                                            <select
-                                                value={semester}
-                                                onChange={(e) => setSemester(e.target.value)}
-                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="1st">1st Semester</option>
-                                                <option value="2nd">2nd Semester</option>
-                                                <option value="Summer">Summer</option>
-                                            </select>
+                                            {/* Semester and School Year */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        Semester
+                                                    </label>
+                                                    <select
+                                                        value={semester}
+                                                        onChange={(e) => setSemester(e.target.value)}
+                                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
+                                                        <option value="1st">1st Semester</option>
+                                                        <option value="2nd">2nd Semester</option>
+                                                        <option value="Summer">Summer</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                        School Year
+                                                    </label>
+                                                    <Input
+                                                        type="text"
+                                                        value={schoolYear}
+                                                        onChange={(e) => setSchoolYear(e.target.value)}
+                                                        placeholder="2025-2026"
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+                                            <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full">
+                                                <Lock className="w-6 h-6 text-slate-400" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                                    Protected Information
+                                                </p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                                                    Please verify your password to view and edit your student details.
+                                                </p>
+                                            </div>
+                                            <form onSubmit={handleUnlockInfo} className="w-full max-w-xs space-y-3">
+                                                <div className="relative">
+                                                    <Input
+                                                        type="password"
+                                                        value={unlockPassword}
+                                                        onChange={(e) => {
+                                                            setUnlockPassword(e.target.value);
+                                                            if (unlockError) setUnlockError('');
+                                                        }}
+                                                        placeholder="Enter password"
+                                                        className={`w-full ${unlockError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                                                    />
+                                                    {unlockError && (
+                                                        <p className="absolute -bottom-5 left-0 text-xs text-red-500">
+                                                            {unlockError}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={!unlockPassword || unlocking}
+                                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                                >
+                                                    {unlocking ? (
+                                                        <>
+                                                            <Loader2 size={16} className="mr-2 animate-spin" />
+                                                            Verifying...
+                                                        </>
+                                                    ) : (
+                                                        'Verify & Unlock'
+                                                    )}
+                                                </Button>
+                                            </form>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                School Year
-                                            </label>
-                                            <Input
-                                                type="text"
-                                                value={schoolYear}
-                                                onChange={(e) => setSchoolYear(e.target.value)}
-                                                placeholder="2025-2026"
-                                                className="w-full"
-                                            />
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
