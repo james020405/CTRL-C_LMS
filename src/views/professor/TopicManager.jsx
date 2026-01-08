@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 
 export default function TopicManager({ course, onBack }) {
-    const { toast } = useToast();
+    const toast = useToast();
     const [topics, setTopics] = useState([]);
     const [newTopicTitle, setNewTopicTitle] = useState('');
     const [loading, setLoading] = useState(false);

@@ -11,7 +11,7 @@ import { useToast } from '../../components/ui/Toast';
 export default function StudentDashboard() {
     const navigate = useNavigate();
     const { user, profile } = useAuth();
-    const { toast } = useToast();
+    const toast = useToast();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ totalPoints: 0, gamesPlayed: 0 });

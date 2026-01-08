@@ -8,7 +8,7 @@ import { useToast } from '../../components/ui/Toast';
 import { CheckCircle, XCircle, Loader2, ShieldCheck, User, ChevronDown } from 'lucide-react';
 
 export default function AdminDashboard() {
-    const { toast } = useToast();
+    const toast = useToast();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingRole, setUpdatingRole] = useState(null);

@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudentFlashcards() {
     const { user } = useAuth();
-    const { toast } = useToast();
+    const toast = useToast();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [studyMode, setStudyMode] = useState(false);
