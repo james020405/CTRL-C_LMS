@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { GraduationCap, Users, ArrowRight, Wrench, Brain, Zap, Gamepad2, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -11,6 +12,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Landing() {
     const navigate = useNavigate();
+    const { user, profile } = useAuth();
 
     // Handle Supabase auth redirects (password recovery, email confirmation)
     useEffect(() => {
@@ -110,9 +112,9 @@ export default function Landing() {
                             <MovingButton
                                 borderRadius="1.75rem"
                                 className="bg-white dark:bg-slate-900 text-black dark:text-white border-neutral-200 dark:border-slate-800 font-semibold text-lg"
-                                onClick={() => navigate('/login')}
+                                onClick={() => user ? navigate(profile?.role === 'professor' ? '/professor/dashboard' : '/student/dashboard') : navigate('/login')}
                             >
-                                Get Started
+                                {user ? "Go to Dashboard" : "Get Started"}
                             </MovingButton>
                             <Button
                                 variant="outline"
@@ -187,19 +189,30 @@ export default function Landing() {
                                         Access your courses, simulations, and quizzes.
                                     </p>
                                     <div className="flex gap-4">
-                                        <Button
-                                            onClick={() => navigate('/login')}
-                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 rounded-xl"
-                                        >
-                                            Login
-                                        </Button>
-                                        <Button
-                                            onClick={() => navigate('/register')}
-                                            variant="outline"
-                                            className="flex-1 h-12 text-lg rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
-                                        >
-                                            Register
-                                        </Button>
+                                        {user ? (
+                                            <Button
+                                                onClick={() => navigate(profile?.role === 'professor' ? '/professor/dashboard' : '/student/dashboard')}
+                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 rounded-xl"
+                                            >
+                                                Go to Dashboard
+                                            </Button>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    onClick={() => navigate('/login')}
+                                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 rounded-xl"
+                                                >
+                                                    Login
+                                                </Button>
+                                                <Button
+                                                    onClick={() => navigate('/register')}
+                                                    variant="outline"
+                                                    className="flex-1 h-12 text-lg rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                >
+                                                    Register
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </Card>
