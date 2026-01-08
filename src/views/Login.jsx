@@ -71,8 +71,23 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const { error } = await signIn(email, password);
+            const { data, error } = await signIn(email, password);
             if (error) throw error;
+
+            // If trying to access professor area, verify role first
+            if (isProfessor) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role, is_approved')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (!profile || profile.role !== 'professor' || !profile.is_approved) {
+                    await supabase.auth.signOut();
+                    throw new Error('Invalid credentials for staff access.');
+                }
+            }
+
             navigate(from, { replace: true });
         } catch (err) {
             setError(err.message);

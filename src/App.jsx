@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -65,6 +65,7 @@ function App() {
                             <Route path="/register" element={<Register />} />
                             <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/email-confirmed" element={<EmailConfirmed />} />
+                            <Route path="/professor/login" element={<Navigate to="/login" state={{ from: { pathname: '/professor/dashboard' } }} replace />} />
                             <Route element={<ProtectedRoute />}>
                                 <Route element={<ProfessorRoute />}>
                                     <Route path="/professor/dashboard" element={<ProfessorDashboard />} />

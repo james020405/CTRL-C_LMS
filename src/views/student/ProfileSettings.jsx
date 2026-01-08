@@ -266,17 +266,17 @@ export default function ProfileSettings() {
         }
 
         try {
-            // Delete profile from profiles table
-            await supabase.from('profiles').delete().eq('id', user.id);
+            // Call secure database function to delete account
+            const { error } = await supabase.rpc('delete_user_account');
 
-            // Delete flashcards
-            await supabase.from('student_flashcards').delete().eq('user_id', user.id);
+            if (error) throw error;
 
-            // Sign out
+            // Sign out locally
             await signOut();
             navigate('/');
             toast.success('Account deleted successfully');
         } catch (err) {
+            console.error('Delete account error:', err);
             toast.error('Failed to delete account. Please contact support.');
             setDeleteConfirmOpen(false);
         }

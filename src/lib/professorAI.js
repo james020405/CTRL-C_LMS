@@ -21,7 +21,7 @@ if (OPENROUTER_API_KEY) {
 if (API_KEY) {
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
-        professorModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        professorModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         console.log("✅ Professor AI: Gemini ready (FALLBACK)");
     } catch (error) {
         console.error("❌ Professor Gemini init failed:", error.message);

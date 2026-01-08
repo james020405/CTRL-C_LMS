@@ -193,9 +193,17 @@ export default function Landing() {
                         <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>
                         <span className="font-bold text-slate-900 dark:text-white">Ctrl C Academy</span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">
-                        © 2024 Ctrl C Academy. All rights reserved.
-                    </p>
+                    <div className="flex items-center gap-6">
+                        <button
+                            onClick={() => navigate('/professor/login')}
+                            className="text-slate-400 dark:text-slate-600 text-xs hover:text-slate-500 dark:hover:text-slate-500 transition-colors"
+                        >
+                            Staff
+                        </button>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            © 2024 Ctrl C Academy. All rights reserved.
+                        </p>
+                    </div>
                 </div>
             </footer>
         </div>

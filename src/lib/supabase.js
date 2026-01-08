@@ -12,7 +12,13 @@ const isValidUrl = (url) => {
 }
 
 export const supabase = isValidUrl(supabaseUrl)
-    ? createClient(supabaseUrl, supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
+    })
     : {
         from: () => ({
             select: () => Promise.resolve({ data: [], error: null }),
