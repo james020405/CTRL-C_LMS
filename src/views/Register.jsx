@@ -101,7 +101,16 @@ export default function Register() {
                 formData.email,
                 formData.password,
                 formData.fullName,
-                { role, is_approved: isApproved } // Pass metadata
+                {
+                    role,
+                    is_approved: isApproved,
+                    // Pass student data in metadata for the trigger to pick up
+                    student_number: isStudent ? formData.studentNumber : null,
+                    year_level: isStudent ? parseInt(formData.yearLevel) : null,
+                    section: isStudent ? formData.section : null,
+                    semester: isStudent ? formData.semester : null,
+                    school_year: isStudent ? formData.schoolYear : null
+                }
             );
             if (authError) throw authError;
 
