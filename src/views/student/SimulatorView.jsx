@@ -26,9 +26,19 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) 
         partsData.current.clear();
 
         let partIndex = 0;
+        const allPartNames = new Set();
+
         scene.traverse((child) => {
             if (child.isMesh) {
                 meshList.current.push(child);
+
+                // Collect part name for logging
+                let target = child;
+                while (target && (!target.name || target.name.startsWith('Object_') || target.name.startsWith('Mesh'))) {
+                    target = target.parent;
+                }
+                const partName = target?.name || child.name || "Unknown";
+                allPartNames.add(partName);
 
                 const meshWorldPos = new THREE.Vector3();
                 child.getWorldPosition(meshWorldPos);
@@ -108,40 +118,52 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) 
         });
     }, [xrayMode, scene]);
 
-    // Only use manual explosion if no animations available
+    // Enhanced manual explosion animation for models without baked animations
+    const explosionProgress = useRef(0);
+    const explosionSpeed = 2.0; // Speed of explosion animation
+
     useFrame((state, delta) => {
         if (hasAnimations) {
             // Animation mixer handles movement, we just need to update it
             return;
         }
 
-        // Fall back to manual explosion for models without animations
-        let explosionDistance = 0;
+        // Animate explosion progress
+        const targetProgress = isExploded ? 1 : 0;
+        const progressDiff = targetProgress - explosionProgress.current;
 
-        if (isExploded) {
-            explosionDistance = 0.3;
+        if (Math.abs(progressDiff) > 0.001) {
+            explosionProgress.current += progressDiff * delta * explosionSpeed;
+            explosionProgress.current = Math.max(0, Math.min(1, explosionProgress.current));
+        }
 
-            for (let i = 0; i < meshList.current.length; i++) {
-                const child = meshList.current[i];
-                const data = partsData.current.get(child.uuid);
+        // Enhanced explosion with staggered timing per part
+        const baseExplosionDistance = 0.4; // Subtle separation for realistic disassembly
+        const totalParts = meshList.current.length;
 
-                if (data) {
-                    const offset = data.explosionDirection.clone().multiplyScalar(explosionDistance);
-                    const targetPos = data.originalPosition.clone().add(offset);
+        for (let i = 0; i < meshList.current.length; i++) {
+            const child = meshList.current[i];
+            const data = partsData.current.get(child.uuid);
 
-                    if (child.position.distanceTo(targetPos) > 0.01) {
-                        child.position.lerp(targetPos, delta * 1.2);
-                    }
-                }
-            }
-        } else {
-            for (let i = 0; i < meshList.current.length; i++) {
-                const child = meshList.current[i];
-                const data = partsData.current.get(child.uuid);
+            if (data) {
+                // Staggered animation - parts explode sequentially based on their index
+                const partDelay = (data.partIndex / totalParts) * 0.5; // 0 to 0.5 delay
+                const adjustedProgress = Math.max(0, Math.min(1, (explosionProgress.current - partDelay) / (1 - partDelay)));
 
-                if (data && child.position.distanceTo(data.originalPosition) > 0.01) {
-                    child.position.lerp(data.originalPosition, delta * 1.2);
-                }
+                // Easing function for smooth animation
+                const easedProgress = adjustedProgress < 0.5
+                    ? 2 * adjustedProgress * adjustedProgress
+                    : 1 - Math.pow(-2 * adjustedProgress + 2, 2) / 2;
+
+                // Calculate target position with varied distances per part
+                const partDistanceMultiplier = 0.8 + (data.partIndex % 5) * 0.1; // Slight variation
+                const explosionDistance = baseExplosionDistance * partDistanceMultiplier * easedProgress;
+
+                const offset = data.explosionDirection.clone().multiplyScalar(explosionDistance);
+                const targetPos = data.originalPosition.clone().add(offset);
+
+                // Smooth interpolation
+                child.position.lerp(targetPos, delta * 8);
             }
         }
     });
@@ -181,8 +203,8 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) 
                         target = target.parent;
                     }
                     const rawName = target?.name || mesh.name || "Unknown";
-                    const partName = getPartName(rawName, systemType);
-                    onHover?.(partName);
+                    // Use raw model name directly
+                    onHover?.(rawName);
                 }
             }
         };
@@ -190,21 +212,37 @@ function Model({ url, onPartClick, isExploded, xrayMode, onHover, systemType }) 
         gl.domElement.addEventListener('mousemove', handleMouseMove);
         return () => gl.domElement.removeEventListener('mousemove', handleMouseMove);
     }, [camera, gl, onHover]);
+    // Handle click with proper raycasting (same as hover)
+    useEffect(() => {
+        const handleClick = (event) => {
+            const rect = gl.domElement.getBoundingClientRect();
+            mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.current.setFromCamera(mouse.current, camera);
+            const intersects = raycaster.current.intersectObjects(meshList.current, false);
+
+            if (intersects.length > 0) {
+                const mesh = intersects[0].object;
+                let target = mesh;
+                while (target && (!target.name || target.name.startsWith('Object_') || target.name.startsWith('Mesh'))) {
+                    target = target.parent;
+                }
+                const rawName = target?.name || mesh.name || "Unknown";
+                // Use rawName directly instead of getPartName to show actual model names
+                console.log('Clicked part raw name:', rawName);
+                onPartClick(rawName);
+            }
+        };
+
+        gl.domElement.addEventListener('click', handleClick);
+        return () => gl.domElement.removeEventListener('click', handleClick);
+    }, [camera, gl, onPartClick]);
 
     return (
         <primitive
             ref={groupRef}
             object={scene}
-            onClick={(e) => {
-                e.stopPropagation();
-                let target = e.object;
-                while (target && (!target.name || target.name.startsWith('Object_') || target.name.startsWith('Mesh'))) {
-                    target = target.parent;
-                }
-                const rawName = target?.name || e.object.name || "Unknown";
-                const partName = getPartName(rawName, systemType);
-                onPartClick(partName);
-            }}
         />
     );
 }
@@ -340,10 +378,10 @@ export default function SimulatorView() {
                                 key={system.id}
                                 onClick={() => handleSystemChange(system.id)}
                                 className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between ${currentSystem === system.id
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20'
-                                        : !isRelevant && diagnosticMode
-                                            ? 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/20'
+                                    : !isRelevant && diagnosticMode
+                                        ? 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                                     }`}
                             >
                                 <span className="font-medium">{system.name}</span>
