@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useAnimations, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -259,7 +260,10 @@ function Loader() {
 }
 
 export default function SimulatorView() {
-    const [currentSystem, setCurrentSystem] = React.useState('engine');
+    const [searchParams] = useSearchParams();
+    const initialSystem = searchParams.get('system') || 'engine';
+
+    const [currentSystem, setCurrentSystem] = React.useState(initialSystem);
     const [selectedPart, setSelectedPart] = React.useState(null);
     const [hoveredPart, setHoveredPart] = React.useState(null);
     const [isExploded, setIsExploded] = React.useState(false);
