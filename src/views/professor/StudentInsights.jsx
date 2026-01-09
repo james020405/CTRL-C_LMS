@@ -384,8 +384,9 @@ export default function StudentInsights() {
                         {/* Action Items */}
                         {aiInsights.actionItems && (
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                                    📋 Action Items for This Week
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+                                    <Target size={16} />
+                                    Action Items for This Week
                                 </h4>
                                 <ul className="space-y-1">
                                     {aiInsights.actionItems.map((item, idx) => (
@@ -408,56 +409,58 @@ export default function StudentInsights() {
             </Card>
 
             {/* Star Performers & Needs Support */}
-            <div className="grid md:grid-cols-2 gap-6">
+            < div className="grid md:grid-cols-2 gap-6" >
                 {/* Star Performers */}
-                <Card className="p-5">
+                < Card className="p-5" >
                     <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <Star className="text-yellow-500" />
                         Star Performers
                         <span className="text-xs font-normal text-slate-500 ml-2">Highest growth</span>
                     </h3>
 
-                    {starPerformers.length > 0 ? (
-                        <div className="space-y-3">
-                            {starPerformers.map((student, idx) => (
-                                <div key={student.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${idx === 0 ? 'bg-yellow-500' :
-                                            idx === 1 ? 'bg-slate-400' :
-                                                idx === 2 ? 'bg-amber-600' :
-                                                    'bg-slate-300'
-                                            }`}>
-                                            {idx + 1}
+                    {
+                        starPerformers.length > 0 ? (
+                            <div className="space-y-3">
+                                {starPerformers.map((student, idx) => (
+                                    <div key={student.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${idx === 0 ? 'bg-yellow-500' :
+                                                idx === 1 ? 'bg-slate-400' :
+                                                    idx === 2 ? 'bg-amber-600' :
+                                                        'bg-slate-300'
+                                                }`}>
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
+                                                <p className="text-xs text-slate-500">
+                                                    {student.bestGame
+                                                        ? `Best: ${GAME_NAMES[student.bestGame.type]}`
+                                                        : 'No games yet'
+                                                    }
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
-                                            <p className="text-xs text-slate-500">
-                                                {student.bestGame
-                                                    ? `Best: ${GAME_NAMES[student.bestGame.type]}`
-                                                    : 'No games yet'
-                                                }
-                                            </p>
+                                        <div className="text-right">
+                                            <p className="font-bold text-slate-900 dark:text-white">{student.totalPoints.toLocaleString()}</p>
+                                            {student.trend > 0 && (
+                                                <p className="text-xs text-green-600 flex items-center gap-1">
+                                                    <TrendingUp size={12} />
+                                                    +{Math.round(student.trend)}%
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-slate-900 dark:text-white">{student.totalPoints.toLocaleString()}</p>
-                                        {student.trend > 0 && (
-                                            <p className="text-xs text-green-600 flex items-center gap-1">
-                                                <TrendingUp size={12} />
-                                                +{Math.round(student.trend)}%
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-slate-500 text-center py-4">No active students yet</p>
-                    )}
-                </Card>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-slate-500 text-center py-4">No active students yet</p>
+                        )
+                    }
+                </Card >
 
                 {/* Needs Support (Private) */}
-                <Card className="p-5">
+                < Card className="p-5" >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <AlertCircle className="text-orange-500" />
@@ -473,47 +476,49 @@ export default function StudentInsights() {
                         </button>
                     </div>
 
-                    {showNeedsSupport ? (
-                        needsSupport.length > 0 ? (
-                            <div className="space-y-3">
-                                {needsSupport.map((student) => (
-                                    <div key={student.id} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                        <div>
-                                            <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
-                                            <p className="text-xs text-orange-600">
-                                                {student.gamesPlayed < 3
-                                                    ? 'Low activity - only ' + student.gamesPlayed + ' games'
-                                                    : 'Declining performance'
-                                                }
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium text-slate-700 dark:text-slate-300">{student.gamesPlayed} games</p>
-                                            {student.trend < 0 && (
-                                                <p className="text-xs text-red-600 flex items-center gap-1">
-                                                    <TrendingDown size={12} />
-                                                    {Math.round(student.trend)}%
+                    {
+                        showNeedsSupport ? (
+                            needsSupport.length > 0 ? (
+                                <div className="space-y-3">
+                                    {needsSupport.map((student) => (
+                                        <div key={student.id} className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                            <div>
+                                                <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
+                                                <p className="text-xs text-orange-600">
+                                                    {student.gamesPlayed < 3
+                                                        ? 'Low activity - only ' + student.gamesPlayed + ' games'
+                                                        : 'Declining performance'
+                                                    }
                                                 </p>
-                                            )}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-medium text-slate-700 dark:text-slate-300">{student.gamesPlayed} games</p>
+                                                {student.trend < 0 && (
+                                                    <p className="text-xs text-red-600 flex items-center gap-1">
+                                                        <TrendingDown size={12} />
+                                                        {Math.round(student.trend)}%
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-slate-500 text-center py-4">All students are on track!</p>
+                            )
                         ) : (
-                            <p className="text-slate-500 text-center py-4">All students are on track! 🎉</p>
+                            <div className="text-center py-8 text-slate-400">
+                                <AlertCircle className="mx-auto mb-2 opacity-30" size={32} />
+                                <p className="text-sm">Click "Show" to view students who may need extra help</p>
+                                <p className="text-xs mt-1">This list is private and only visible to you</p>
+                            </div>
                         )
-                    ) : (
-                        <div className="text-center py-8 text-slate-400">
-                            <AlertCircle className="mx-auto mb-2 opacity-30" size={32} />
-                            <p className="text-sm">Click "Show" to view students who may need extra help</p>
-                            <p className="text-xs mt-1">This list is private and only visible to you</p>
-                        </div>
-                    )}
-                </Card>
-            </div>
+                    }
+                </Card >
+            </div >
 
             {/* Game Popularity Insights */}
-            <Card className="p-5">
+            < Card className="p-5" >
                 <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <BarChart3 className="text-blue-600" />
                     Game Popularity Insights
@@ -551,10 +556,10 @@ export default function StudentInsights() {
                                         <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2 ${isTop
-                                                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
-                                                        : idx === 1
-                                                            ? 'bg-gradient-to-r from-blue-400 to-blue-500'
-                                                            : 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-500'
+                                                    ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
+                                                    : idx === 1
+                                                        ? 'bg-gradient-to-r from-blue-400 to-blue-500'
+                                                        : 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-500'
                                                     }`}
                                                 style={{ width: `${Math.max(barWidth, 5)}%` }}
                                             >
@@ -610,8 +615,9 @@ export default function StudentInsights() {
 
                 {/* Engagement Summary */}
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                    <h4 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-2">
-                        📊 Engagement Summary
+                    <h4 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
+                        <BarChart3 size={14} />
+                        Engagement Summary
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
@@ -646,7 +652,7 @@ export default function StudentInsights() {
                         </div>
                     </div>
                 </div>
-            </Card>
-        </div>
+            </Card >
+        </div >
     );
 }
