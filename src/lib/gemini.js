@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCrossSystemCase } from '../data/crossSystemCases';
 import { getChainReactionScenario } from '../data/chainReactionData';
 import logger from './logger';
