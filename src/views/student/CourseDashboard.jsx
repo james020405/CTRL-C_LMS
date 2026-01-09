@@ -357,7 +357,7 @@ export default function StudentDashboard() {
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Join Course</h3>
                             <button
                                 onClick={() => { setShowJoinModal(false); setJoinCode(''); setJoinError(''); }}
-                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                             >
                                 <X size={20} />
                             </button>
