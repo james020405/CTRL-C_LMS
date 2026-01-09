@@ -27,6 +27,7 @@ const TechnicianDetective = React.lazy(() => import('./views/student/TechnicianD
 
 // Lazy loaded - Medium weight components
 const ProfessorDashboard = React.lazy(() => import('./views/professor/Dashboard'));
+const MfaSetup = React.lazy(() => import('./views/admin/MfaSetup'));
 const AdminDashboard = React.lazy(() => import('./views/admin/AdminDashboard'));
 const StudentDashboard = React.lazy(() => import('./views/student/CourseDashboard'));
 const SystemsExplorer = React.lazy(() => import('./views/student/SystemsExplorer'));
@@ -72,6 +73,7 @@ function App() {
                                 </Route>
                                 <Route element={<AdminRoute />}>
                                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                    <Route path="/admin/mfa-setup" element={<MfaSetup />} />
                                 </Route>
                             </Route>
 
