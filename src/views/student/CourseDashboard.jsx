@@ -250,19 +250,19 @@ export default function StudentDashboard() {
                 <div className="flex gap-4">
                     <div
                         onClick={() => navigate('/student/progress')}
-                        className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 px-5 py-3 rounded-xl cursor-pointer hover:shadow-lg transition-all group"
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-3 rounded-xl cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
                     >
                         <div className="text-xs text-slate-500 dark:text-slate-400">Total Points</div>
-                        <div className="text-2xl font-bold text-yellow-600 group-hover:scale-105 transition-transform">
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white group-hover:scale-105 transition-transform">
                             {stats.totalPoints.toLocaleString()}
                         </div>
                     </div>
                     <div
                         onClick={() => navigate('/student/progress')}
-                        className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-5 py-3 rounded-xl cursor-pointer hover:shadow-lg transition-all group"
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-3 rounded-xl cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
                     >
                         <div className="text-xs text-slate-500 dark:text-slate-400">Games Played</div>
-                        <div className="text-2xl font-bold text-blue-600 group-hover:scale-105 transition-transform">
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white group-hover:scale-105 transition-transform">
                             {stats.gamesPlayed}
                         </div>
                     </div>
