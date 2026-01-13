@@ -36,3 +36,6 @@ Thumbs.db
 
 # Large Godot simulator files
 public/simulator/
+
+# Local database files
+database/
