@@ -26,9 +26,11 @@ const Login1 = ({
                 <div className="flex flex-col items-center gap-y-6 mb-8">
                     {/* Logo */}
                     <a href={logo.url} className="group">
-                        <div className="h-14 w-14 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/20 group-hover:scale-105 transition-transform">
-                            C
-                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="CTRL+C Logo"
+                            className="h-16 w-16 object-contain group-hover:scale-105 transition-transform drop-shadow-lg"
+                        />
                     </a>
                     {heading && <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{heading}</h1>}
                 </div>

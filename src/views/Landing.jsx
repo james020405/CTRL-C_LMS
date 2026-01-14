@@ -87,6 +87,9 @@ export default function Landing() {
                 <div className="relative z-10 flex flex-col items-center justify-center min-h-screen pt-20 pb-10 px-4">
 
                     <div className="max-w-4xl mx-auto text-center space-y-8">
+                        {/* Logo */}
+
+
                         <div className="h-20 md:h-24 flex items-center justify-center">
                             <GooeyText
                                 texts={["Master", "Learn", "Diagnose", "Repair", "Excel"]}
@@ -228,7 +231,7 @@ export default function Landing() {
             <footer className="bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 py-12 relative z-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>
+                        <img src="/logo.png" alt="CTRL+C" className="h-9 w-9 object-contain" />
                         <span className="font-bold text-slate-900 dark:text-white">Ctrl C Academy</span>
                     </div>
                     <div className="flex items-center gap-6">

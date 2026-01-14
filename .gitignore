@@ -39,3 +39,6 @@ public/simulator/
 
 # Local database files
 database/
+
+# Dev context notes (local only)
+.dev-context.md

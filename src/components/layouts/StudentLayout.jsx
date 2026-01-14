@@ -129,9 +129,11 @@ export default function StudentLayout() {
 export const Logo = () => {
     return (
         <div className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20">
-            <div className="h-6 w-6 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
-                C
-            </div>
+            <img
+                src="/logo.png"
+                alt="CTRL+C"
+                className="h-7 w-7 object-contain flex-shrink-0"
+            />
             <span className="font-bold text-slate-900 dark:text-white whitespace-pre">
                 Ctrl C Academy
             </span>

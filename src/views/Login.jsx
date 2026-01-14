@@ -82,7 +82,9 @@ export default function Login() {
                     .eq('id', data.user.id)
                     .single();
 
-                if (!profile || profile.role !== 'professor' || !profile.is_approved) {
+                // Allow both professor and admin roles to access staff portal
+                const isStaffRole = profile?.role === 'professor' || profile?.role === 'admin';
+                if (!profile || !isStaffRole || !profile.is_approved) {
                     await supabase.auth.signOut();
                     throw new Error('Invalid credentials for staff access.');
                 }
@@ -161,9 +163,11 @@ export default function Login() {
                 <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl px-8 py-10">
                     <div className="flex flex-col items-center gap-y-6 mb-8">
                         <a href="/" className="group">
-                            <div className="h-14 w-14 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-blue-200 dark:shadow-blue-900/20 group-hover:scale-105 transition-transform">
-                                C
-                            </div>
+                            <img
+                                src="/logo.png"
+                                alt="CTRL+C Logo"
+                                className="h-20 w-20 object-contain group-hover:scale-105 transition-transform drop-shadow-lg"
+                            />
                         </a>
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                             {isProfessor ? "Professor Portal" : "Portal Login"}

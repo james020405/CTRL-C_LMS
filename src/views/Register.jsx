@@ -163,6 +163,11 @@ export default function Register() {
             <div className="flex items-center justify-center p-4 min-h-[calc(100vh-64px)]">
                 <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800">
                     <div className="text-center mb-8">
+                        <img
+                            src="/logo.png"
+                            alt="CTRL+C Logo"
+                            className="h-16 w-16 mx-auto mb-4 object-contain drop-shadow-md"
+                        />
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</h1>
                         <p className="text-slate-500 dark:text-slate-400">Join the academy today</p>
                     </div>

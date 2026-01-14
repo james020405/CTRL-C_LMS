@@ -210,33 +210,53 @@ const getFallbackScenario = (system, partName) => {
 };
 
 export const generateServiceCustomer = async (difficulty = 'easy') => {
-    // Random Filipino names to force variety
-    const firstNames = ['Mang', 'Aling', 'Kuya', 'Ate', 'Tito', 'Tita', 'Sir', 'Ma\'am'];
-    const lastNames = ['Jose', 'Maria', 'Pedro', 'Juan', 'Santos', 'Cruz', 'Reyes', 'Garcia', 'Mendoza', 'Torres', 'Ramos', 'Lim', 'Tan', 'Sy', 'Ong'];
+    // Expanded Filipino names for variety
+    const firstNames = ['Mang', 'Aling', 'Kuya', 'Ate', 'Tito', 'Tita', 'Sir', 'Ma\'am', 'Boss', 'Pare', 'Mare', 'Lolo', 'Lola'];
+    const lastNames = [
+        'Jose', 'Maria', 'Pedro', 'Juan', 'Santos', 'Cruz', 'Reyes', 'Garcia', 'Mendoza', 'Torres',
+        'Ramos', 'Lim', 'Tan', 'Sy', 'Ong', 'Villanueva', 'Bautista', 'Fernandez', 'De Leon', 'Aquino',
+        'Gonzales', 'Morales', 'Castillo', 'Flores', 'Rivera', 'Navarro', 'Pascual', 'Santiago'
+    ];
     const randomName = `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
 
-    // Random vehicles
+    // Expanded vehicles with engine specs
     const vehicles = [
-        '2018 Toyota Vios', '2015 Honda City', '2020 Mitsubishi Xpander',
-        '2017 Nissan Navara', '2019 Suzuki Ertiga', '2016 Hyundai Accent',
-        '2021 Toyota Fortuner', '2014 Honda CR-V', '2012 Toyota Innova',
-        '2019 Ford Ranger', '2017 Chevrolet Trailblazer', '2018 Kia Picanto'
+        '2018 Toyota Vios 1.3L', '2015 Honda City 1.5L CVT', '2020 Mitsubishi Xpander GLS',
+        '2017 Nissan Navara 4x4', '2019 Suzuki Ertiga GLX', '2016 Hyundai Accent CRDi',
+        '2021 Toyota Fortuner 2.8L', '2014 Honda CR-V 2.4L', '2012 Toyota Innova 2.5D',
+        '2019 Ford Ranger Wildtrak', '2017 Chevrolet Trailblazer', '2018 Kia Picanto 1.2L',
+        '2020 Isuzu MU-X 3.0L', '2016 Mazda 3 Skyactiv', '2019 Nissan Terra VL',
+        '2018 Honda Civic RS Turbo', '2015 Mitsubishi Montero Sport', '2022 Toyota Hilux'
     ];
     const randomVehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
 
-    // Random problem types per difficulty
+    // Expanded problem types per difficulty
     const problems = {
-        easy: ['oil leak', 'battery issues', 'AC not cold enough', 'brake squeal', 'weak headlights'],
-        medium: ['check engine light on', 'rough idle', 'power steering noise', 'transmission slipping', 'overheating'],
-        hard: ['intermittent stalling', 'electrical drain', 'transmission shudder', 'engine knock', 'multiple warning lights']
+        easy: [
+            'oil leak', 'battery issues', 'AC not cold enough', 'brake squeal', 'weak headlights',
+            'windshield wiper issue', 'door lock problem', 'cabin filter smell', 'horn not working',
+            'side mirror broken', 'rust spots', 'low tire pressure warning', 'burnt out tail light'
+        ],
+        medium: [
+            'check engine light on', 'rough idle', 'power steering noise', 'transmission slipping', 'overheating',
+            'ABS warning light', 'fuel smell', 'hard starting', 'squealing brakes', 'vibration when braking',
+            'AC compressor noise', 'coolant leak', 'oil consumption', 'alternator warning'
+        ],
+        hard: [
+            'intermittent stalling', 'electrical drain', 'transmission shudder', 'engine knock', 'multiple warning lights',
+            'random no-start', 'loss of power under load', 'ghost electrical problems', 'turbo lag',
+            'clutch slipping', 'differential noise', 'head gasket symptoms', 'catalytic converter issues'
+        ]
     };
     const randomProblem = problems[difficulty][Math.floor(Math.random() * problems[difficulty].length)];
-    const randomSeed = Math.floor(Math.random() * 10000);
+    const randomSeed = Math.floor(Math.random() * 100000);
+    const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
 
+    // Expanded moods
     const moodsByDifficulty = {
-        easy: ['Friendly', 'Clueless'],
-        medium: ['Impatient', 'Clueless'],
-        hard: ['Angry', 'Suspicious']
+        easy: ['Friendly', 'Clueless', 'Chatty', 'Trusting'],
+        medium: ['Impatient', 'Clueless', 'Skeptical', 'Busy'],
+        hard: ['Angry', 'Suspicious', 'Demanding', 'Know-it-all']
     };
     const randomMood = moodsByDifficulty[difficulty][Math.floor(Math.random() * moodsByDifficulty[difficulty].length)];
 
@@ -762,6 +782,49 @@ const getFallbackQuestionResponse = (customer, question) => {
  * @returns {Promise<string>} - The technician's findings
  */
 export const askTechnicianToCheck = async (customer, command) => {
+    // Content filtering - reject inappropriate or off-topic commands
+    const commandLower = command.toLowerCase().trim();
+
+    // Check for profanity or inappropriate content
+    const inappropriatePatterns = [
+        /\b(fuck|shit|damn|ass|dick|cock|pussy|bitch|bastard|cunt|whore|slut|penis|vagina|sex|porn|nude|naked)\b/i,
+        /\b(kill|murder|die|death|suicide|rape|molest)\b/i,
+        /\b(eat|suck|lick)\s*(my|your|the)?\s*(dick|cock|balls|ass|pussy)\b/i,
+        /\b(go\s*fuck|fuck\s*(you|off|yourself))\b/i
+    ];
+
+    const isInappropriate = inappropriatePatterns.some(pattern => pattern.test(commandLower));
+
+    if (isInappropriate) {
+        return "⚠️ That request is inappropriate and unprofessional. Please enter a valid diagnostic command related to vehicle inspection or testing.";
+    }
+
+    // Check for completely off-topic commands (not automotive related)
+    const automotiveKeywords = /\b(check|test|inspect|scan|measure|read|look|examine|verify|diagnose|pressure|voltage|resistance|fluid|level|brake|oil|engine|battery|coolant|transmission|tire|wheel|suspension|steering|exhaust|fuel|filter|belt|hose|wiring|sensor|code|obd|compression|leak|noise|vibration|temperature|rpm|idle|spark|plug|ignition|alternator|starter|radiator|ac|aircon|compressor|pad|rotor|caliper|shock|strut|bearing|gasket|pump|injector|throttle|maf|o2|oxygen|catalytic|converter|timing|chain|belt|valve|piston|cylinder|head|manifold|turbo|boost|intercooler|clutch|differential|axle|cv|joint|bushing|mount|sway|bar|control|arm|tie|rod|rack|pinion|power|steering|abs|airbag|ecu|pcm|bcm|module|relay|fuse|ground|short|circuit|drain|charge|crank|start|no.*start|misfire|rough|stall|hesitate|surge|knock|ping|overheat|cold|hot|warm|smell|smoke|leak|drip|puddle|wear|worn|replace|repair|fix|service|maintenance)\b/i;
+
+    const isAutomotiveRelated = automotiveKeywords.test(commandLower);
+
+    // If very short and not automotive related, reject
+    if (commandLower.length < 10 && !isAutomotiveRelated) {
+        return "⚠️ Please enter a specific diagnostic command. For example: 'Check battery voltage', 'Scan for codes', 'Inspect brake pads', etc.";
+    }
+
+    // If clearly not a diagnostic request
+    if (!isAutomotiveRelated && commandLower.length < 50) {
+        const nonDiagnosticPatterns = [
+            /^(hi|hello|hey|yo|sup|what'?s?\s*up)/i,
+            /^(how\s*are\s*you|who\s*are\s*you|what\s*is\s*your\s*name)/i,
+            /\b(joke|funny|story|sing|dance|play|game)\b/i,
+            /\b(weather|news|politics|sports|movie|music|food)\b/i
+        ];
+
+        const isNonDiagnostic = nonDiagnosticPatterns.some(pattern => pattern.test(commandLower));
+
+        if (isNonDiagnostic) {
+            return "⚠️ That's not a diagnostic command. Please specify what you want to check or test on the vehicle. Examples: 'Test battery', 'Check coolant level', 'Scan for codes'.";
+        }
+    }
+
     const prompt = `
 You are an experienced automotive technician at a repair shop in the Philippines.
 
@@ -876,8 +939,9 @@ export const generateCrossSystemCase = async (difficulty = 'easy') => {
         hard: 'The connection is subtle. Multiple red herrings, intermittent symptoms, or chain reactions across 3+ systems.'
     };
 
-    // Random system combinations to force variety
+    // Expanded system combinations for more variety
     const systemCombos = [
+        // Original combinations
         { symptom: 'Brakes', root: 'Suspension', example: 'bad control arm causing pulling' },
         { symptom: 'Engine', root: 'Electrical', example: 'bad ground causing misfires' },
         { symptom: 'Transmission', root: 'Engine', example: 'low power causing hard shifts' },
@@ -887,14 +951,35 @@ export const generateCrossSystemCase = async (difficulty = 'easy') => {
         { symptom: 'Engine', root: 'Fuel System', example: 'clogged filter causing stalling' },
         { symptom: 'Brakes', root: 'Hydraulic System', example: 'master cylinder causing soft pedal' },
         { symptom: 'Suspension', root: 'Steering', example: 'worn rack causing tire wear' },
-        { symptom: 'Transmission', root: 'Cooling System', example: 'overheating affecting fluid' }
+        { symptom: 'Transmission', root: 'Cooling System', example: 'overheating affecting fluid' },
+        // New combinations for variety
+        { symptom: 'Engine', root: 'Exhaust', example: 'clogged catalytic converter causing power loss' },
+        { symptom: 'Electrical', root: 'Engine', example: 'bad crankshaft sensor causing no-start' },
+        { symptom: 'Cooling', root: 'Engine', example: 'blown head gasket causing overheating' },
+        { symptom: 'Brakes', root: 'Electrical', example: 'bad ABS sensor causing light' },
+        { symptom: 'Transmission', root: 'Electrical', example: 'faulty speed sensor causing shift issues' },
+        { symptom: 'Engine', root: 'Air Intake', example: 'vacuum leak causing rough idle' },
+        { symptom: 'Suspension', root: 'Brakes', example: 'warped rotor causing steering shake' },
+        { symptom: 'Fuel Economy', root: 'Ignition', example: 'worn spark plugs causing rich mixture' },
+        { symptom: 'Steering', root: 'Electrical', example: 'failing power steering module' },
+        { symptom: 'Engine', root: 'Cooling', example: 'stuck thermostat causing overheating' },
+        { symptom: 'AC/Climate', root: 'Electrical', example: 'blown fuse causing no AC' },
+        { symptom: 'Transmission', root: 'Drivetrain', example: 'worn CV joint causing vibration' }
     ];
 
     const randomCombo = systemCombos[Math.floor(Math.random() * systemCombos.length)];
-    const randomSeed = Math.floor(Math.random() * 10000);
+    const randomSeed = Math.floor(Math.random() * 100000);
+    const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
 
-    // Random vehicle to add variety
-    const vehicles = ['2018 Toyota Vios', '2015 Honda City', '2020 Mitsubishi Xpander', '2017 Nissan Navara', '2019 Suzuki Ertiga', '2016 Hyundai Accent', '2021 Toyota Fortuner', '2014 Honda CR-V'];
+    // Expanded vehicle list
+    const vehicles = [
+        '2018 Toyota Vios 1.3L', '2015 Honda City 1.5L CVT', '2020 Mitsubishi Xpander GLS',
+        '2017 Nissan Navara 4x4', '2019 Suzuki Ertiga GLX', '2016 Hyundai Accent CRDi',
+        '2021 Toyota Fortuner 2.8L', '2014 Honda CR-V 2.4L', '2019 Ford Ranger XLT',
+        '2018 Mazda 3 Skyactiv', '2017 Kia Sportage', '2020 Isuzu MU-X 3.0L',
+        '2016 Chevrolet Trailblazer', '2022 Toyota Hilux', '2018 Honda Civic RS',
+        '2019 Nissan Terra VL', '2015 Mitsubishi Montero Sport', '2017 Subaru XV'
+    ];
     const randomVehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
 
     const prompt = `You are an automotive instructor. Create a Cross-System Detective scenario.
@@ -1023,17 +1108,47 @@ export const generateChainReactionScenario = async (difficulty = 'easy') => {
         hard: 'Complex 4+ system chain with multiple effects. Use timing chain, head gasket, transmission overheating scenarios.'
     };
 
-    const automotiveSystems = ['Engine', 'Cooling', 'Electrical', 'Transmission', 'Brakes', 'Steering', 'Suspension', 'Fuel System', 'Exhaust', 'HVAC', 'Ignition'];
+    // Expanded systems and specific failure types for variety
+    const automotiveSystems = [
+        'Engine', 'Cooling', 'Electrical', 'Transmission', 'Brakes', 'Steering',
+        'Suspension', 'Fuel System', 'Exhaust', 'HVAC', 'Ignition', 'Charging',
+        'Lubrication', 'Air Intake', 'Emission', 'Drivetrain'
+    ];
     const primarySystem = automotiveSystems[Math.floor(Math.random() * automotiveSystems.length)];
-    const randomSeed = Math.floor(Math.random() * 10000);
 
-    const prompt = `You are an automotive instructor creating a "System Chain Reaction" quiz.
+    // Specific failure scenarios for more variety
+    const failureTypes = {
+        easy: [
+            'Thermostat stuck open', 'Low coolant level', 'Weak battery', 'Loose serpentine belt',
+            'Clogged air filter', 'Low oil level', 'Worn spark plugs', 'Dirty throttle body',
+            'Low brake fluid', 'Corroded battery terminal', 'Worn wiper blades', 'Low tire pressure'
+        ],
+        medium: [
+            'Failing water pump', 'Bad alternator', 'Vacuum leak', 'Clogged fuel filter',
+            'Worn wheel bearing', 'Leaking head gasket', 'Faulty O2 sensor', 'Stuck EGR valve',
+            'Bad MAF sensor', 'Worn CV joint', 'Failing power steering pump', 'Clogged radiator'
+        ],
+        hard: [
+            'Stretched timing chain', 'Internal transmission slip', 'Parasitic battery drain',
+            'Intermittent crankshaft sensor', 'PCM communication failure', 'Catalytic converter breakdown',
+            'Torque converter shudder', 'Cylinder head crack', 'Main bearing wear', 'Turbo seal failure'
+        ]
+    };
+    const randomFailure = failureTypes[difficulty][Math.floor(Math.random() * failureTypes[difficulty].length)];
+
+    const randomSeed = Math.floor(Math.random() * 100000);
+    const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+
+    const prompt = `You are an automotive instructor creating a UNIQUE "System Chain Reaction" quiz.
+CRITICAL: Generate a COMPLETELY DIFFERENT scenario. Do NOT repeat previous answers.
 
 DIFFICULTY: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
 
 PRIMARY SYSTEM: ${primarySystem}
-Seed: ${randomSeed}
+FAILURE TYPE HINT: ${randomFailure}
+Unique ID: ${uniqueId}
+Random Seed: ${randomSeed}
 
 Generate a failure scenario with ONE correct chain reaction and THREE WRONG alternatives.
 
@@ -1162,13 +1277,20 @@ Return ONLY this JSON:
  * @returns {Promise<Object>} - Case object WITHOUT revealing the diagnosis
  */
 export const generateTechnicianCase = async (difficulty = 'easy') => {
+    // Larger pool of vehicles for variety
     const vehicles = [
-        '2018 Toyota Vios', '2015 Honda City', '2020 Mitsubishi Xpander',
-        '2017 Nissan Navara', '2019 Suzuki Ertiga', '2016 Hyundai Accent',
-        '2021 Toyota Fortuner', '2014 Honda CR-V', '2012 Toyota Innova'
+        '2018 Toyota Vios 1.3L', '2015 Honda City 1.5L CVT', '2020 Mitsubishi Xpander GLS',
+        '2017 Nissan Navara 4x4', '2019 Suzuki Ertiga GLX', '2016 Hyundai Accent CRDi',
+        '2021 Toyota Fortuner 2.8L', '2014 Honda CR-V 2.4L', '2012 Toyota Innova 2.5D',
+        '2019 Ford Ranger Wildtrak', '2018 Mazda 3 Skyactiv', '2017 Kia Picanto',
+        '2020 Isuzu MU-X', '2016 Chevrolet Trailblazer', '2015 Mitsubishi Montero Sport',
+        '2022 Toyota Hilux', '2019 Nissan Terra', '2018 Honda Civic RS Turbo'
     ];
     const randomVehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
-    const randomSeed = Math.floor(Math.random() * 10000);
+
+    // More specific random seeds for AI variance
+    const randomSeed = Math.floor(Math.random() * 100000);
+    const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
 
     const difficultyGuides = {
         easy: 'Simple single-system issue with clear symptoms. Diagnosis should be relatively straightforward.',
@@ -1176,21 +1298,47 @@ export const generateTechnicianCase = async (difficulty = 'easy') => {
         hard: 'Complex issue with multiple possible causes or intermittent symptoms. Red herrings present.'
     };
 
+    // Much larger pool of problem types for variety
     const problemTypes = {
-        easy: ['dead battery', 'worn brake pads', 'low coolant', 'dirty air filter', 'worn wiper blades'],
-        medium: ['rough idle', 'AC not cooling', 'check engine light', 'power steering noise', 'brake vibration'],
-        hard: ['intermittent stalling', 'electrical drain', 'engine misfire', 'transmission slip', 'mystery noise']
+        easy: [
+            'dead battery', 'worn brake pads', 'low coolant', 'dirty air filter', 'worn wiper blades',
+            'flat tire', 'burned out headlight', 'loose gas cap', 'corroded battery terminals',
+            'clogged cabin filter', 'low washer fluid', 'worn serpentine belt', 'weak horn',
+            'sticky door lock', 'broken tail light', 'missing hubcap', 'low tire pressure'
+        ],
+        medium: [
+            'rough idle', 'AC not cooling', 'check engine light', 'power steering noise', 'brake vibration',
+            'engine overheating', 'squealing brakes', 'hard starting', 'battery drain', 'fuel smell',
+            'steering wheel vibration', 'uneven tire wear', 'clicking CV joint', 'noisy suspension',
+            'transmission delay', 'ABS warning light', 'coolant leak', 'oil consumption'
+        ],
+        hard: [
+            'intermittent stalling', 'parasitic electrical drain', 'engine misfire', 'transmission slip', 'mystery noise',
+            'random no-start', 'loss of power under load', 'hunting idle', 'hesitation on acceleration',
+            'intermittent overheating', 'ghost electrical problems', 'vibration at specific speeds',
+            'brake pulsation', 'clutch slipping', 'differential whine', 'turbo lag issues'
+        ]
     };
-    const randomProblem = problemTypes[difficulty][Math.floor(Math.random() * problemTypes[difficulty].length)];
+
+    // Select random problem
+    const problemList = problemTypes[difficulty];
+    const randomProblem = problemList[Math.floor(Math.random() * problemList.length)];
+
+    // Random automotive system to focus on
+    const systems = ['Engine', 'Brakes', 'Electrical', 'Suspension', 'AC/Cooling', 'Transmission', 'Steering'];
+    const randomSystem = systems[Math.floor(Math.random() * systems.length)];
 
     const prompt = `
-You are an automotive instructor creating a DIAGNOSTIC MYSTERY for students.
+You are an automotive instructor creating a UNIQUE DIAGNOSTIC MYSTERY for students.
+CRITICAL: Generate a COMPLETELY DIFFERENT scenario each time. Do NOT repeat previous cases.
 
 Vehicle: ${randomVehicle}
+System Focus: ${randomSystem}
 Problem type hint: ${randomProblem}
 Difficulty: ${difficulty.toUpperCase()}
 ${difficultyGuides[difficulty]}
-Random seed: ${randomSeed}
+Unique ID: ${uniqueId}
+Random seed for variance: ${randomSeed}
 
 IMPORTANT: The problem MUST be related to one of these 7 automotive systems:
 - Engine (engine components, fuel system, ignition)
@@ -1432,18 +1580,61 @@ export const evaluateTechnicianDiagnosis = (caseData, selectedDiagnosisId, selec
     const correctDiagnosis = caseData.possibleDiagnoses?.find(d => d.isCorrect);
     const isCorrect = selectedDiagnosis?.isCorrect || false;
 
-    // Calculate parts accuracy
-    const correctPartsLower = (caseData.correctParts || []).map(p => p.toLowerCase());
-    const selectedPartsLower = (selectedParts || []).map(p => p.toLowerCase());
+    // Calculate parts accuracy using fuzzy keyword matching
+    const extractKeywords = (text) => {
+        // Extract meaningful automotive keywords from text
+        const normalized = text.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')  // Remove punctuation
+            .replace(/\s+/g, ' ')           // Normalize spaces
+            .trim();
+
+        // Common automotive part keywords to match on
+        const keywords = normalized.split(' ').filter(word =>
+            word.length > 2 &&
+            !['the', 'and', 'for', 'with', 'set', 'kit', 'pair', 'replacement', 'recommended'].includes(word)
+        );
+        return keywords;
+    };
+
+    const fuzzyMatch = (correctPart, selectedPart) => {
+        const correctKeywords = extractKeywords(correctPart);
+        const selectedKeywords = extractKeywords(selectedPart);
+
+        // Count how many keywords match
+        let matches = 0;
+        for (const ck of correctKeywords) {
+            for (const sk of selectedKeywords) {
+                // Check if keywords are similar (exact match or one contains the other)
+                if (ck === sk || ck.includes(sk) || sk.includes(ck)) {
+                    matches++;
+                    break;
+                }
+                // Also check for common variations (pad/pads, rotor/rotors, etc.)
+                const ckBase = ck.replace(/s$/, '');
+                const skBase = sk.replace(/s$/, '');
+                if (ckBase === skBase) {
+                    matches++;
+                    break;
+                }
+            }
+        }
+
+        // Consider it a match if at least 50% of keywords match (or at least 2 keywords)
+        const threshold = Math.max(2, Math.ceil(correctKeywords.length * 0.5));
+        return matches >= threshold;
+    };
+
+    const correctParts = caseData.correctParts || [];
+    const selectedPartsArr = selectedParts || [];
 
     let partsMatched = 0;
-    correctPartsLower.forEach(cp => {
-        if (selectedPartsLower.some(sp => sp.includes(cp) || cp.includes(sp))) {
+    correctParts.forEach(cp => {
+        if (selectedPartsArr.some(sp => fuzzyMatch(cp, sp))) {
             partsMatched++;
         }
     });
-    const partsAccuracy = correctPartsLower.length > 0
-        ? (partsMatched / correctPartsLower.length) * 100
+    const partsAccuracy = correctParts.length > 0
+        ? (partsMatched / correctParts.length) * 100
         : 0;
 
     // Calculate efficiency score (using fewer tests = better)
@@ -1464,7 +1655,7 @@ export const evaluateTechnicianDiagnosis = (caseData, selectedDiagnosisId, selec
         actualDiagnosis: caseData.actualDiagnosis,
         correctParts: caseData.correctParts,
         partsMatched,
-        partsTotal: correctPartsLower.length,
+        partsTotal: correctParts.length,
         partsAccuracy,
         testsUsed,
         testsAllowed,

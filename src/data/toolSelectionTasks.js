@@ -1,491 +1,494 @@
 /**
- * Fallback task data for Tool Selection Challenge
- * Each task includes repair description, vehicle info, required tools, and all tools in toolbox
+ * Tool Challenge Quiz Data
+ * Multiple-choice questions testing tool identification and alternative applications
+ * Follows metric units (mm), functional descriptions, and includes "twist" questions
  */
 
-// Tool database - all available tools
-export const TOOL_DATABASE = {
-    // Wrenches & Sockets
-    socket_10mm: { id: 'socket_10mm', name: '10mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_12mm: { id: 'socket_12mm', name: '12mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_14mm: { id: 'socket_14mm', name: '14mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_17mm: { id: 'socket_17mm', name: '17mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_19mm: { id: 'socket_19mm', name: '19mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_21mm: { id: 'socket_21mm', name: '21mm Socket', category: 'Sockets', icon: '🔧' },
-    socket_22mm: { id: 'socket_22mm', name: '22mm Socket', category: 'Sockets', icon: '🔧' },
-    ratchet_3_8: { id: 'ratchet_3_8', name: '3/8" Ratchet', category: 'Ratchets', icon: '🔧' },
-    ratchet_1_2: { id: 'ratchet_1_2', name: '1/2" Ratchet', category: 'Ratchets', icon: '🔧' },
-    torque_wrench: { id: 'torque_wrench', name: 'Torque Wrench', category: 'Specialty', icon: '🔧' },
-    breaker_bar: { id: 'breaker_bar', name: 'Breaker Bar', category: 'Specialty', icon: '🔧' },
-
-    // Screwdrivers
-    flathead_small: { id: 'flathead_small', name: 'Flathead Screwdriver (Small)', category: 'Screwdrivers', icon: '🪛' },
-    flathead_large: { id: 'flathead_large', name: 'Flathead Screwdriver (Large)', category: 'Screwdrivers', icon: '🪛' },
-    phillips_1: { id: 'phillips_1', name: 'Phillips #1', category: 'Screwdrivers', icon: '🪛' },
-    phillips_2: { id: 'phillips_2', name: 'Phillips #2', category: 'Screwdrivers', icon: '🪛' },
-
-    // Pliers
-    needle_nose: { id: 'needle_nose', name: 'Needle Nose Pliers', category: 'Pliers', icon: '🔧' },
-    slip_joint: { id: 'slip_joint', name: 'Slip Joint Pliers', category: 'Pliers', icon: '🔧' },
-    locking_pliers: { id: 'locking_pliers', name: 'Locking Pliers (Vise Grip)', category: 'Pliers', icon: '🔧' },
-    hose_clamp_pliers: { id: 'hose_clamp_pliers', name: 'Hose Clamp Pliers', category: 'Specialty', icon: '🔧' },
-
-    // Specialty Tools
-    oil_filter_wrench: { id: 'oil_filter_wrench', name: 'Oil Filter Wrench', category: 'Specialty', icon: '🔧' },
-    drain_pan: { id: 'drain_pan', name: 'Drain Pan', category: 'Specialty', icon: '🫗' },
-    funnel: { id: 'funnel', name: 'Funnel', category: 'Specialty', icon: '🫗' },
-    jack: { id: 'jack', name: 'Floor Jack', category: 'Lifting', icon: '🏋️' },
-    jack_stands: { id: 'jack_stands', name: 'Jack Stands (Pair)', category: 'Lifting', icon: '🏋️' },
-    wheel_chocks: { id: 'wheel_chocks', name: 'Wheel Chocks', category: 'Safety', icon: '🔶' },
-    multimeter: { id: 'multimeter', name: 'Multimeter', category: 'Electrical', icon: '⚡' },
-    test_light: { id: 'test_light', name: 'Test Light', category: 'Electrical', icon: '⚡' },
-    wire_strippers: { id: 'wire_strippers', name: 'Wire Strippers', category: 'Electrical', icon: '⚡' },
-    crimping_tool: { id: 'crimping_tool', name: 'Crimping Tool', category: 'Electrical', icon: '⚡' },
-    belt_tensioner_tool: { id: 'belt_tensioner_tool', name: 'Belt Tensioner Tool', category: 'Specialty', icon: '🔧' },
-    spark_plug_socket: { id: 'spark_plug_socket', name: 'Spark Plug Socket', category: 'Specialty', icon: '🔧' },
-    gap_gauge: { id: 'gap_gauge', name: 'Spark Plug Gap Gauge', category: 'Specialty', icon: '📏' },
-    battery_terminal_puller: { id: 'battery_terminal_puller', name: 'Battery Terminal Puller', category: 'Specialty', icon: '🔧' },
-    pry_bar: { id: 'pry_bar', name: 'Pry Bar', category: 'Specialty', icon: '🔧' },
-    hammer: { id: 'hammer', name: 'Ball Peen Hammer', category: 'Striking', icon: '🔨' },
-    rubber_mallet: { id: 'rubber_mallet', name: 'Rubber Mallet', category: 'Striking', icon: '🔨' },
-    brake_caliper_tool: { id: 'brake_caliper_tool', name: 'Brake Caliper Piston Tool', category: 'Specialty', icon: '🔧' },
-    c_clamp: { id: 'c_clamp', name: 'C-Clamp', category: 'Specialty', icon: '🔧' },
-    tire_iron: { id: 'tire_iron', name: 'Tire Iron / Lug Wrench', category: 'Specialty', icon: '🔧' },
-};
-
-// Helper function to get tools by IDs
-const getTools = (toolIds) => toolIds.map(id => TOOL_DATABASE[id]);
-
-// Fallback tasks by difficulty - EXPANDED with many more scenarios
-const FALLBACK_TASKS = {
+// Questions database organized by difficulty
+const TOOL_CHALLENGE_QUESTIONS = {
     easy: [
         {
             id: 'easy_1',
-            title: 'Oil Change',
-            description: 'Perform a complete engine oil and filter change',
-            vehicleInfo: '2019 Toyota Vios 1.3L',
-            requiredTools: ['socket_14mm', 'ratchet_3_8', 'oil_filter_wrench', 'drain_pan', 'funnel'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'oil_filter_wrench', 'drain_pan', 'funnel', 'flathead_small', 'phillips_2', 'hammer'],
-            explanations: {
-                socket_14mm: 'Needed to remove the drain plug',
-                ratchet_3_8: 'To drive the socket for the drain plug',
-                oil_filter_wrench: 'To remove the oil filter',
-                drain_pan: 'To catch the old oil',
-                funnel: 'To pour new oil without spilling'
+            scenario: 'A technician needs to loosen a 14 mm bolt in a recessed engine compartment where a standard wrench cannot swing more than 15 degrees. Which tool would allow continuous ratcheting action in this confined space?',
+            options: [
+                { id: 'a', text: 'Adjustable wrench', isCorrect: false },
+                { id: 'b', text: 'Combination wrench (14 mm)', isCorrect: false },
+                { id: 'c', text: 'Ratcheting box-end wrench (14 mm)', isCorrect: true },
+                { id: 'd', text: 'Open-end wrench (14 mm)', isCorrect: false },
+                { id: 'e', text: 'Locking pliers', isCorrect: false }
+            ],
+            explanation: 'A ratcheting box-end wrench allows continuous rotation with minimal swing arc, making it ideal for tight spaces where standard wrenches cannot operate effectively.',
+            twist: {
+                question: 'Besides loosening bolts, this same tool can be used to:',
+                options: [
+                    { id: 'a', text: 'Measure torque values', isCorrect: false },
+                    { id: 'b', text: 'Hold a nut stationary while another wrench turns the bolt', isCorrect: true },
+                    { id: 'c', text: 'Cut through seized fasteners', isCorrect: false },
+                    { id: 'd', text: 'Extract stripped bolts', isCorrect: false },
+                    { id: 'e', text: 'Calibrate socket extensions', isCorrect: false }
+                ],
+                explanation: 'The ratcheting mechanism can be locked in position to hold a nut while a second wrench applies torque to the bolt.'
             }
         },
         {
             id: 'easy_2',
-            title: 'Tire Rotation',
-            description: 'Rotate all four tires following the recommended pattern',
-            vehicleInfo: '2020 Honda City',
-            requiredTools: ['jack', 'jack_stands', 'socket_19mm', 'ratchet_1_2', 'torque_wrench', 'wheel_chocks'],
-            toolbox: ['jack', 'jack_stands', 'socket_17mm', 'socket_19mm', 'socket_21mm', 'ratchet_1_2',
-                'torque_wrench', 'wheel_chocks', 'tire_iron', 'breaker_bar', 'pry_bar', 'hammer'],
-            explanations: {
-                jack: 'To lift the vehicle',
-                jack_stands: 'Safety support while working',
-                socket_19mm: 'Lug nut size for this vehicle',
-                ratchet_1_2: 'To drive the socket',
-                torque_wrench: 'To properly torque lug nuts to spec',
-                wheel_chocks: 'Prevent vehicle from rolling'
+            scenario: 'A technician is installing a cylinder head and must tighten 12 mm bolts to exactly 65 Nm in a specific sequence. Which tool ensures this level of precision?',
+            options: [
+                { id: 'a', text: 'Impact wrench', isCorrect: false },
+                { id: 'b', text: 'Breaker bar', isCorrect: false },
+                { id: 'c', text: 'Socket wrench with extension', isCorrect: false },
+                { id: 'd', text: 'Click-type torque wrench', isCorrect: true },
+                { id: 'e', text: 'Ratcheting combination wrench', isCorrect: false }
+            ],
+            explanation: 'A click-type torque wrench provides audible and tactile feedback when the preset torque value is reached, ensuring precise and consistent fastener tightening.',
+            twist: {
+                question: 'Beyond torquing fasteners, this tool can serve as:',
+                options: [
+                    { id: 'a', text: 'A pry bar for stubborn components', isCorrect: false },
+                    { id: 'b', text: 'A reference to verify if existing bolts meet specification', isCorrect: true },
+                    { id: 'c', text: 'A hammer for seized parts', isCorrect: false },
+                    { id: 'd', text: 'A socket extension', isCorrect: false },
+                    { id: 'e', text: 'A bolt extractor', isCorrect: false }
+                ],
+                explanation: 'A torque wrench can be used to check if previously installed bolts are tightened to specification by slowly applying torque until the wrench clicks.'
             }
         },
         {
             id: 'easy_3',
-            title: 'Air Filter Replacement',
-            description: 'Replace the engine air filter',
-            vehicleInfo: '2018 Mitsubishi Mirage',
-            requiredTools: ['flathead_small', 'phillips_2'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'flathead_small', 'flathead_large',
-                'phillips_1', 'phillips_2', 'needle_nose', 'hammer'],
-            explanations: {
-                flathead_small: 'To release air box clips',
-                phillips_2: 'To remove air box cover screws'
+            scenario: 'A technician needs to remove a 22 mm oil filter cap that is too tight for hand removal but cannot risk damaging the plastic housing. Which tool provides controlled grip without crushing?',
+            options: [
+                { id: 'a', text: 'Channel-lock pliers', isCorrect: false },
+                { id: 'b', text: 'Oil filter cap wrench (22 mm)', isCorrect: true },
+                { id: 'c', text: 'Pipe wrench', isCorrect: false },
+                { id: 'd', text: 'Vise-grip pliers', isCorrect: false },
+                { id: 'e', text: 'Strap wrench', isCorrect: false }
+            ],
+            explanation: 'An oil filter cap wrench is specifically designed with the correct internal dimensions to grip the cap securely without applying crushing force to the plastic housing.',
+            twist: {
+                question: 'This same tool style can alternatively be used to:',
+                options: [
+                    { id: 'a', text: 'Tighten lug nuts', isCorrect: false },
+                    { id: 'b', text: 'Remove similarly-sized plastic drain plugs and caps', isCorrect: true },
+                    { id: 'c', text: 'Compress suspension springs', isCorrect: false },
+                    { id: 'd', text: 'Align brake rotors', isCorrect: false },
+                    { id: 'e', text: 'Extract fuel injectors', isCorrect: false }
+                ],
+                explanation: 'The socket-style design works on any similarly-sized hexagonal or fluted cap, including transmission fluid check plugs and coolant reservoir caps.'
             }
         },
         {
             id: 'easy_4',
-            title: 'Wiper Blade Replacement',
-            description: 'Replace front windshield wiper blades',
-            vehicleInfo: '2021 Suzuki Ertiga',
-            requiredTools: ['flathead_small'],
-            toolbox: ['flathead_small', 'flathead_large', 'phillips_1', 'phillips_2', 'needle_nose', 'socket_10mm'],
-            explanations: {
-                flathead_small: 'To release wiper blade clip/tab'
+            scenario: 'A technician must remove a 10 mm bolt located 250 mm deep inside a transmission bell housing. Standard sockets cannot reach. Which combination provides both depth and secure fastener engagement?',
+            options: [
+                { id: 'a', text: 'Magnetic pickup tool', isCorrect: false },
+                { id: 'b', text: 'Flexible socket extension', isCorrect: false },
+                { id: 'c', text: 'Deep socket (10 mm) with long extension bar', isCorrect: true },
+                { id: 'd', text: 'Universal joint with standard socket', isCorrect: false },
+                { id: 'e', text: 'Offset screwdriver', isCorrect: false }
+            ],
+            explanation: 'A deep socket combined with a long extension bar provides the reach needed while maintaining proper engagement with the fastener for secure removal.',
+            twist: {
+                question: 'Deep sockets are also commonly used to:',
+                options: [
+                    { id: 'a', text: 'Remove oil drain plugs', isCorrect: false },
+                    { id: 'b', text: 'Access spark plugs recessed in aluminum cylinder heads', isCorrect: true },
+                    { id: 'c', text: 'Loosen wheel lug nuts', isCorrect: false },
+                    { id: 'd', text: 'Install brake caliper bolts', isCorrect: false },
+                    { id: 'e', text: 'Remove radiator hoses', isCorrect: false }
+                ],
+                explanation: 'Spark plugs in modern aluminum heads are often deeply recessed, requiring deep sockets with rubber inserts to grip and protect the ceramic insulator.'
             }
         },
         {
             id: 'easy_5',
-            title: 'Cabin Air Filter Change',
-            description: 'Replace the cabin/AC air filter behind the glove box',
-            vehicleInfo: '2019 Honda CR-V',
-            requiredTools: ['phillips_2', 'flathead_small'],
-            toolbox: ['phillips_1', 'phillips_2', 'flathead_small', 'flathead_large', 'socket_10mm', 'needle_nose'],
-            explanations: {
-                phillips_2: 'To remove glove box screws',
-                flathead_small: 'To release filter housing clips'
-            }
-        },
-        {
-            id: 'easy_6',
-            title: 'Headlight Bulb Replacement',
-            description: 'Replace a burned-out halogen headlight bulb',
-            vehicleInfo: '2017 Toyota Innova',
-            requiredTools: ['flathead_small', 'phillips_2'],
-            toolbox: ['flathead_small', 'flathead_large', 'phillips_1', 'phillips_2', 'socket_10mm', 'socket_12mm', 'needle_nose'],
-            explanations: {
-                flathead_small: 'To release bulb socket retaining clip',
-                phillips_2: 'To remove headlight housing screws if needed'
+            scenario: 'A 13 mm bolt is positioned behind the intake manifold at an awkward angle, making straight-on access impossible. Which tool allows socket engagement at variable angles?',
+            options: [
+                { id: 'a', text: 'Offset box wrench', isCorrect: false },
+                { id: 'b', text: 'Crowfoot wrench', isCorrect: false },
+                { id: 'c', text: 'Universal joint (wobble socket adapter)', isCorrect: true },
+                { id: 'd', text: 'Ratcheting wrench', isCorrect: false },
+                { id: 'e', text: 'Flex-head ratchet', isCorrect: false }
+            ],
+            explanation: 'A universal joint (wobble adapter) allows the socket to engage the fastener at angles up to 30 degrees, enabling access in tight or obstructed areas.',
+            twist: {
+                question: 'Universal joints are particularly valuable for:',
+                options: [
+                    { id: 'a', text: 'Measuring torque at angles', isCorrect: false },
+                    { id: 'b', text: 'Accessing starter motor bolts obstructed by exhaust components', isCorrect: true },
+                    { id: 'c', text: 'Cutting rusted fasteners', isCorrect: false },
+                    { id: 'd', text: 'Compressing valve springs', isCorrect: false },
+                    { id: 'e', text: 'Aligning timing chains', isCorrect: false }
+                ],
+                explanation: 'Starter motors are often positioned where exhaust pipes or other components block straight access, making universal joints essential for removal.'
             }
         }
     ],
     medium: [
         {
             id: 'med_1',
-            title: 'Brake Pad Replacement (Front)',
-            description: 'Replace front brake pads on disc brake system',
-            vehicleInfo: '2018 Mitsubishi Montero Sport',
-            requiredTools: ['jack', 'jack_stands', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'c_clamp',
-                'brake_caliper_tool', 'flathead_large', 'wheel_chocks'],
-            toolbox: ['jack', 'jack_stands', 'socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm',
-                'ratchet_3_8', 'ratchet_1_2', 'c_clamp', 'brake_caliper_tool', 'flathead_small',
-                'flathead_large', 'wheel_chocks', 'pry_bar'],
-            explanations: {
-                jack: 'To lift vehicle and remove wheel',
-                jack_stands: 'Safety support',
-                socket_14mm: 'Caliper slide pin bolts',
-                socket_17mm: 'Caliper bracket bolts',
-                ratchet_3_8: 'To drive sockets',
-                c_clamp: 'To compress caliper piston',
-                brake_caliper_tool: 'Alternative piston compression tool',
-                flathead_large: 'To pry caliper off rotor',
-                wheel_chocks: 'Safety - prevent rolling'
+            scenario: 'When replacing a serpentine belt, a technician must release tension from a spring-loaded tensioner that controls the alternator, AC compressor, and water pump pulleys simultaneously. Which specialized tool is designed specifically for this task?',
+            options: [
+                { id: 'a', text: 'Pry bar', isCorrect: false },
+                { id: 'b', text: 'Standard 15 mm socket with breaker bar', isCorrect: false },
+                { id: 'c', text: 'Serpentine belt tensioner tool', isCorrect: true },
+                { id: 'd', text: 'Adjustable pliers', isCorrect: false },
+                { id: 'e', text: 'Torque wrench', isCorrect: false }
+            ],
+            explanation: 'A serpentine belt tensioner tool is designed with specific profiles to fit various tensioner mounting points and provides the leverage needed to release spring-loaded tensioners safely.',
+            twist: {
+                question: 'This tool can also be adapted to:',
+                options: [
+                    { id: 'a', text: 'Release tension on timing belt tensioners with similar mounting points', isCorrect: true },
+                    { id: 'b', text: 'Remove spark plugs', isCorrect: false },
+                    { id: 'c', text: 'Tighten cylinder head bolts', isCorrect: false },
+                    { id: 'd', text: 'Compress valve springs', isCorrect: false },
+                    { id: 'e', text: 'Align camshaft timing marks', isCorrect: false }
+                ],
+                explanation: 'Many timing belt tensioners use similar mounting designs, allowing the serpentine belt tool to be used during timing belt service.'
             }
         },
         {
             id: 'med_2',
-            title: 'Serpentine Belt Replacement',
-            description: 'Replace the serpentine/accessory drive belt',
-            vehicleInfo: '2017 Ford Ranger 2.2L',
-            requiredTools: ['socket_14mm', 'ratchet_3_8', 'belt_tensioner_tool', 'breaker_bar'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'belt_tensioner_tool', 'breaker_bar', 'flathead_small', 'pry_bar', 'needle_nose', 'phillips_2'],
-            explanations: {
-                socket_14mm: 'Tensioner bolt size',
-                ratchet_3_8: 'To work in tight spaces',
-                belt_tensioner_tool: 'To release spring-loaded tensioner',
-                breaker_bar: 'Extra leverage for tensioner'
+            scenario: 'A 19 mm nut on an exhaust manifold has become seized due to heat cycling and corrosion. The technician needs maximum leverage to break it free without rounding the fastener. Which tool provides the greatest mechanical advantage?',
+            options: [
+                { id: 'a', text: 'Adjustable wrench', isCorrect: false },
+                { id: 'b', text: 'Standard ratchet with 19 mm socket', isCorrect: false },
+                { id: 'c', text: 'Breaker bar with 19 mm six-point socket', isCorrect: true },
+                { id: 'd', text: 'Impact screwdriver', isCorrect: false },
+                { id: 'e', text: 'Locking pliers', isCorrect: false }
+            ],
+            explanation: 'A breaker bar provides a long lever arm for maximum torque, and a six-point socket grips all six corners of the nut, reducing the risk of rounding.',
+            twist: {
+                question: 'When not breaking seized fasteners, a breaker bar is commonly used to:',
+                options: [
+                    { id: 'a', text: 'Measure bolt diameter', isCorrect: false },
+                    { id: 'b', text: 'Rotate the crankshaft pulley during timing belt alignment', isCorrect: true },
+                    { id: 'c', text: 'Compress brake pistons', isCorrect: false },
+                    { id: 'd', text: 'Extract broken studs', isCorrect: false },
+                    { id: 'e', text: 'Test electrical continuity', isCorrect: false }
+                ],
+                explanation: 'When setting timing, the crankshaft must be rotated to align timing marks. A breaker bar on the crankshaft pulley bolt allows precise, controlled rotation.'
             }
         },
         {
             id: 'med_3',
-            title: 'Coolant Hose Replacement',
-            description: 'Replace upper radiator hose',
-            vehicleInfo: '2015 Toyota Innova',
-            requiredTools: ['flathead_large', 'hose_clamp_pliers', 'drain_pan', 'funnel'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'flathead_small', 'flathead_large',
-                'hose_clamp_pliers', 'needle_nose', 'drain_pan', 'funnel', 'pry_bar'],
-            explanations: {
-                flathead_large: 'To loosen traditional hose clamps',
-                hose_clamp_pliers: 'To release spring-type clamps',
-                drain_pan: 'To catch coolant spillage',
-                funnel: 'To refill coolant without spilling'
+            scenario: 'Before removing a MacPherson strut from a vehicle, the technician must safely compress the coil spring to release tension. Which specialized tool prevents dangerous spring release?',
+            options: [
+                { id: 'a', text: 'Pry bar set', isCorrect: false },
+                { id: 'b', text: 'Hydraulic jack', isCorrect: false },
+                { id: 'c', text: 'Coil spring compressor', isCorrect: true },
+                { id: 'd', text: 'Ball joint separator', isCorrect: false },
+                { id: 'e', text: 'Tie rod puller', isCorrect: false }
+            ],
+            explanation: 'A coil spring compressor uses threaded rods or clamps to safely compress the spring, allowing the strut assembly to be disassembled without the stored spring energy causing injury.',
+            twist: {
+                question: 'Some spring compressor designs can also be adapted to:',
+                options: [
+                    { id: 'a', text: 'Remove wheel bearings', isCorrect: false },
+                    { id: 'b', text: 'Compress valve springs during cylinder head work', isCorrect: true },
+                    { id: 'c', text: 'Extract pressed-in bushings', isCorrect: false },
+                    { id: 'd', text: 'Align suspension geometry', isCorrect: false },
+                    { id: 'e', text: 'Test shock absorber travel', isCorrect: false }
+                ],
+                explanation: 'Universal spring compressor designs can be configured to compress valve springs when removing or installing valves during cylinder head service.'
             }
         },
         {
             id: 'med_4',
-            title: 'Thermostat Replacement',
-            description: 'Replace faulty engine thermostat',
-            vehicleInfo: '2016 Nissan Navara',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'drain_pan', 'flathead_small'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'drain_pan', 'flathead_small',
-                'flathead_large', 'hose_clamp_pliers', 'funnel', 'pry_bar'],
-            explanations: {
-                socket_10mm: 'Thermostat housing bolts',
-                socket_12mm: 'Water outlet housing bolts',
-                ratchet_3_8: 'To drive sockets',
-                drain_pan: 'To catch coolant when opened',
-                flathead_small: 'To pry off old gasket material'
+            scenario: 'A 12 mm bolt has sheared off flush with the engine block surface. The technician needs to remove the embedded portion without damaging the threads. Which tool is specifically designed for this situation?',
+            options: [
+                { id: 'a', text: 'Drill bit set', isCorrect: false },
+                { id: 'b', text: 'Left-hand twist drill', isCorrect: false },
+                { id: 'c', text: 'Screw extractor (easy-out) set', isCorrect: true },
+                { id: 'd', text: 'Tap and die set', isCorrect: false },
+                { id: 'e', text: 'Thread chaser', isCorrect: false }
+            ],
+            explanation: 'Screw extractors have a tapered, reverse-threaded design that bites into the drilled pilot hole and backs out the broken fastener when turned counter-clockwise.',
+            twist: {
+                question: 'Before using this extraction tool, technicians often first use:',
+                options: [
+                    { id: 'a', text: 'Penetrating oil only', isCorrect: false },
+                    { id: 'b', text: 'A center punch to create a pilot point, then a left-hand drill bit', isCorrect: true },
+                    { id: 'c', text: 'A grinding wheel to flatten the surface', isCorrect: false },
+                    { id: 'd', text: 'A chisel to crack the bolt', isCorrect: false },
+                    { id: 'e', text: 'Heat from a propane torch exclusively', isCorrect: false }
+                ],
+                explanation: 'A center punch creates a starting point to prevent drill wandering. A left-hand drill sometimes removes the bolt on its own, and if not, creates the pilot hole for the extractor.'
             }
         },
         {
             id: 'med_5',
-            title: 'Starter Motor Replacement',
-            description: 'Remove and replace the starter motor',
-            vehicleInfo: '2014 Honda City',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'ratchet_1_2'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'breaker_bar', 'flathead_small', 'multimeter', 'pry_bar', 'jack', 'jack_stands'],
-            explanations: {
-                socket_10mm: 'Battery terminal and electrical connections',
-                socket_12mm: 'Starter mounting bolts',
-                socket_14mm: 'Main starter bolt',
-                ratchet_3_8: 'For smaller bolts',
-                ratchet_1_2: 'For main mounting bolts'
-            }
-        },
-        {
-            id: 'med_6',
-            title: 'Water Pump Replacement',
-            description: 'Replace the engine water pump',
-            vehicleInfo: '2018 Hyundai Accent',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'drain_pan', 'belt_tensioner_tool', 'funnel'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'ratchet_1_2', 'drain_pan',
-                'belt_tensioner_tool', 'funnel', 'flathead_small', 'hose_clamp_pliers', 'breaker_bar'],
-            explanations: {
-                socket_10mm: 'Water pump mounting bolts',
-                socket_12mm: 'Pump pulley bolts',
-                ratchet_3_8: 'To drive sockets',
-                drain_pan: 'To catch coolant',
-                belt_tensioner_tool: 'To remove serpentine belt first',
-                funnel: 'To refill coolant'
+            scenario: 'A technician suspects a cooling system leak but cannot locate the source visually. Which tool pressurizes the system to reveal the leak point?',
+            options: [
+                { id: 'a', text: 'Vacuum pump', isCorrect: false },
+                { id: 'b', text: 'Cooling system pressure tester', isCorrect: true },
+                { id: 'c', text: 'Compression tester', isCorrect: false },
+                { id: 'd', text: 'Fuel pressure gauge', isCorrect: false },
+                { id: 'e', text: 'Leak-down tester', isCorrect: false }
+            ],
+            explanation: 'A cooling system pressure tester connects to the radiator cap opening and uses a hand pump to pressurize the system, making leaks visible through escaping coolant or bubbles.',
+            twist: {
+                question: 'This same pressure testing principle is applied when:',
+                options: [
+                    { id: 'a', text: 'Checking tire pressure', isCorrect: false },
+                    { id: 'b', text: 'Testing radiator cap pressure relief valve function', isCorrect: true },
+                    { id: 'c', text: 'Measuring engine oil pressure', isCorrect: false },
+                    { id: 'd', text: 'Verifying fuel injector flow rates', isCorrect: false },
+                    { id: 'e', text: 'Checking brake fluid viscosity', isCorrect: false }
+                ],
+                explanation: 'The pressure tester kit includes an adapter to test radiator caps, verifying they hold pressure to specification and release at the correct pressure rating.'
             }
         }
     ],
     hard: [
         {
             id: 'hard_1',
-            title: 'Spark Plug Replacement',
-            description: 'Replace all spark plugs and check gap',
-            vehicleInfo: '2016 Toyota Fortuner 2.7L (4-cylinder)',
-            requiredTools: ['socket_10mm', 'ratchet_3_8', 'spark_plug_socket', 'gap_gauge', 'torque_wrench',
-                'flathead_small', 'needle_nose'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'ratchet_1_2',
-                'spark_plug_socket', 'gap_gauge', 'torque_wrench', 'flathead_small', 'flathead_large',
-                'phillips_1', 'phillips_2', 'needle_nose', 'locking_pliers', 'pry_bar', 'wire_strippers'],
-            explanations: {
-                socket_10mm: 'To remove ignition coil bolts',
-                ratchet_3_8: 'To drive sockets',
-                spark_plug_socket: 'Has rubber insert to grip spark plug',
-                gap_gauge: 'To verify/adjust plug gap before installation',
-                torque_wrench: 'Spark plugs require specific torque',
-                flathead_small: 'To release coil connectors',
-                needle_nose: 'To handle small clips and connectors'
+            scenario: 'A technician needs to measure the compression pressure in each cylinder of a 4-cylinder engine to diagnose a misfire. Which tool provides accurate cylinder pressure readings during the cranking cycle?',
+            options: [
+                { id: 'a', text: 'Vacuum gauge', isCorrect: false },
+                { id: 'b', text: 'Cylinder leak-down tester', isCorrect: false },
+                { id: 'c', text: 'Compression tester with gauge', isCorrect: true },
+                { id: 'd', text: 'Oil pressure gauge', isCorrect: false },
+                { id: 'e', text: 'Fuel pressure tester', isCorrect: false }
+            ],
+            explanation: 'A compression tester screws into the spark plug hole and measures the maximum pressure developed in the cylinder during cranking, indicating engine mechanical condition.',
+            twist: {
+                question: 'If compression readings are low, the technician can further diagnose using:',
+                options: [
+                    { id: 'a', text: 'A higher-capacity compression tester', isCorrect: false },
+                    { id: 'b', text: 'A wet test by adding oil to the cylinder and retesting', isCorrect: true },
+                    { id: 'c', text: 'A multimeter on the ignition coil', isCorrect: false },
+                    { id: 'd', text: 'A timing light on the cylinder', isCorrect: false },
+                    { id: 'e', text: 'A fuel injector pulse tester', isCorrect: false }
+                ],
+                explanation: 'Adding oil temporarily seals worn piston rings. If compression increases significantly, the rings are worn. If unchanged, the valves or head gasket are the likely cause.'
             }
         },
         {
             id: 'hard_2',
-            title: 'Battery and Terminal Service',
-            description: 'Replace battery, clean terminals, test charging system',
-            vehicleInfo: '2019 Nissan Navara',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'battery_terminal_puller',
-                'wire_strippers', 'multimeter', 'flathead_small'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'battery_terminal_puller', 'wire_strippers', 'crimping_tool', 'multimeter', 'test_light',
-                'flathead_small', 'flathead_large', 'needle_nose', 'locking_pliers', 'hammer'],
-            explanations: {
-                socket_10mm: 'Terminal clamp bolts',
-                socket_12mm: 'Battery hold-down bolt',
-                ratchet_3_8: 'To drive sockets',
-                battery_terminal_puller: 'To safely remove corroded terminals',
-                wire_strippers: 'If cable ends need repair',
-                multimeter: 'To test battery voltage and alternator output',
-                flathead_small: 'To spread terminal clamps'
+            scenario: 'A technician needs to verify that a newly installed alternator is charging correctly. Which tool provides precise voltage and current measurements for the charging system?',
+            options: [
+                { id: 'a', text: 'Test light', isCorrect: false },
+                { id: 'b', text: 'Continuity tester', isCorrect: false },
+                { id: 'c', text: 'Digital multimeter', isCorrect: true },
+                { id: 'd', text: 'Circuit breaker finder', isCorrect: false },
+                { id: 'e', text: 'Spark tester', isCorrect: false }
+            ],
+            explanation: 'A digital multimeter can measure battery voltage at rest, charging voltage under load, and current draw, providing complete verification of charging system function.',
+            twist: {
+                question: 'This same tool can diagnose:',
+                options: [
+                    { id: 'a', text: 'Mechanical timing belt stretch', isCorrect: false },
+                    { id: 'b', text: 'Parasitic battery drain by measuring milliamp current with the vehicle off', isCorrect: true },
+                    { id: 'c', text: 'Engine vacuum leaks', isCorrect: false },
+                    { id: 'd', text: 'Wheel bearing play', isCorrect: false },
+                    { id: 'e', text: 'Coolant concentration', isCorrect: false }
+                ],
+                explanation: 'By connecting the multimeter in series with the battery cable and measuring current draw with everything off, technicians can identify components draining the battery.'
             }
         },
         {
             id: 'hard_3',
-            title: 'Alternator Replacement',
-            description: 'Remove and replace the alternator',
-            vehicleInfo: '2017 Hyundai Accent',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'breaker_bar',
-                'belt_tensioner_tool', 'multimeter'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'breaker_bar', 'belt_tensioner_tool', 'multimeter', 'test_light', 'flathead_small',
-                'flathead_large', 'needle_nose', 'pry_bar', 'wire_strippers'],
-            explanations: {
-                socket_10mm: 'Electrical connector bolt',
-                socket_12mm: 'Alternator mounting bolts',
-                socket_14mm: 'Alternator pivot bolt',
-                ratchet_3_8: 'To drive sockets',
-                breaker_bar: 'Extra leverage for tight bolts',
-                belt_tensioner_tool: 'To release belt tensioner',
-                multimeter: 'To verify charging output after installation'
+            scenario: 'A technician needs to remove and install press-fit wheel bearings from a steering knuckle. Which tool applies controlled force without damaging the bearing races or housing?',
+            options: [
+                { id: 'a', text: 'Slide hammer', isCorrect: false },
+                { id: 'b', text: 'Ball joint press', isCorrect: false },
+                { id: 'c', text: 'Hydraulic bearing press', isCorrect: true },
+                { id: 'd', text: 'Gear puller', isCorrect: false },
+                { id: 'e', text: 'Pickle fork', isCorrect: false }
+            ],
+            explanation: 'A hydraulic bearing press applies even, controlled force to press bearings in or out without the shock loading that can damage precision bearing surfaces.',
+            twist: {
+                question: 'This same tool or technique can be used for:',
+                options: [
+                    { id: 'a', text: 'Removing brake rotors', isCorrect: false },
+                    { id: 'b', text: 'Installing and removing suspension bushings', isCorrect: true },
+                    { id: 'c', text: 'Adjusting wheel alignment', isCorrect: false },
+                    { id: 'd', text: 'Bleeding brake lines', isCorrect: false },
+                    { id: 'e', text: 'Testing shock absorbers', isCorrect: false }
+                ],
+                explanation: 'Control arm bushings and other press-fit suspension components require the same controlled pressing force for removal and installation.'
             }
         },
         {
             id: 'hard_4',
-            title: 'Fuel Filter Replacement',
-            description: 'Replace inline fuel filter with proper safety precautions',
-            vehicleInfo: '2015 Mitsubishi L300',
-            requiredTools: ['socket_10mm', 'flathead_small', 'hose_clamp_pliers', 'drain_pan', 'needle_nose'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'ratchet_3_8', 'flathead_small', 'flathead_large',
-                'hose_clamp_pliers', 'drain_pan', 'needle_nose', 'pry_bar', 'funnel', 'locking_pliers'],
-            explanations: {
-                socket_10mm: 'Fuel filter bracket bolts',
-                flathead_small: 'To release fuel line clips',
-                hose_clamp_pliers: 'To remove spring clamps on fuel lines',
-                drain_pan: 'To catch fuel spillage',
-                needle_nose: 'To handle small clips and fittings'
+            scenario: 'A technician needs to set the valve lash on a 16-valve engine with mechanical lifters. Which tools are required to measure and adjust the clearance between the camshaft lobe and valve stem?',
+            options: [
+                { id: 'a', text: 'Dial indicator and magnetic base', isCorrect: false },
+                { id: 'b', text: 'Feeler gauge set and adjustment shims or screws', isCorrect: true },
+                { id: 'c', text: 'Micrometer and depth gauge', isCorrect: false },
+                { id: 'd', text: 'Bore gauge and plastigage', isCorrect: false },
+                { id: 'e', text: 'Timing light and tachometer', isCorrect: false }
+            ],
+            explanation: 'Feeler gauges of precise thicknesses are inserted between the cam lobe and follower to measure clearance. Adjustment is made via shims or screw adjusters depending on engine design.',
+            twist: {
+                question: 'Feeler gauges are also essential when:',
+                options: [
+                    { id: 'a', text: 'Measuring tire tread depth', isCorrect: false },
+                    { id: 'b', text: 'Setting spark plug electrode gap', isCorrect: true },
+                    { id: 'c', text: 'Checking brake rotor thickness', isCorrect: false },
+                    { id: 'd', text: 'Measuring piston ring end gap in the cylinder', isCorrect: false },
+                    { id: 'e', text: 'Both B and D are correct', isCorrect: false }
+                ],
+                explanation: 'Spark plug gaps are set using wire-type feeler gauges, though flat feeler gauges can also verify the gap measurement before installation.'
             }
         },
         {
             id: 'hard_5',
-            title: 'Timing Belt Inspection Access',
-            description: 'Remove timing cover for belt inspection (not replacement)',
-            vehicleInfo: '2014 Mitsubishi Montero',
-            requiredTools: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'ratchet_3_8', 'belt_tensioner_tool', 'breaker_bar'],
-            toolbox: ['socket_10mm', 'socket_12mm', 'socket_14mm', 'socket_17mm', 'ratchet_3_8', 'ratchet_1_2',
-                'belt_tensioner_tool', 'breaker_bar', 'flathead_small', 'flathead_large', 'pry_bar', 'torque_wrench'],
-            explanations: {
-                socket_10mm: 'Timing cover bolts',
-                socket_12mm: 'Water pump pulley bolts',
-                socket_14mm: 'Crankshaft pulley bolts',
-                ratchet_3_8: 'For smaller bolts',
-                belt_tensioner_tool: 'To remove accessory belt first',
-                breaker_bar: 'For crankshaft pulley bolt'
-            }
-        },
-        {
-            id: 'hard_6',
-            title: 'Oxygen Sensor Replacement',
-            description: 'Replace upstream O2 sensor',
-            vehicleInfo: '2018 Toyota Vios',
-            requiredTools: ['socket_22mm', 'ratchet_3_8', 'multimeter', 'wire_strippers', 'needle_nose'],
-            toolbox: ['socket_10mm', 'socket_14mm', 'socket_22mm', 'ratchet_3_8', 'ratchet_1_2',
-                'multimeter', 'wire_strippers', 'needle_nose', 'flathead_small', 'pry_bar', 'test_light', 'breaker_bar'],
-            explanations: {
-                socket_22mm: 'Standard O2 sensor size',
-                ratchet_3_8: 'To drive the socket',
-                multimeter: 'To verify sensor signal after installation',
-                wire_strippers: 'If wiring harness needs repair',
-                needle_nose: 'To handle sensor connector clips'
+            scenario: 'A technician needs to diagnose an intermittent electrical fault in a wire harness that only occurs when the vehicle is moving. Which tool can record voltage fluctuations over time?',
+            options: [
+                { id: 'a', text: 'Standard test light', isCorrect: false },
+                { id: 'b', text: 'Analog multimeter', isCorrect: false },
+                { id: 'c', text: 'Oscilloscope or graphing multimeter', isCorrect: true },
+                { id: 'd', text: 'Logic probe', isCorrect: false },
+                { id: 'e', text: 'Continuity buzzer', isCorrect: false }
+            ],
+            explanation: 'An oscilloscope or graphing multimeter can display and record voltage changes over time, capturing intermittent spikes, dropouts, or noise that a standard meter would miss.',
+            twist: {
+                question: 'This same diagnostic capability is valuable for:',
+                options: [
+                    { id: 'a', text: 'Checking engine oil level', isCorrect: false },
+                    { id: 'b', text: 'Analyzing fuel injector pulse width and waveform patterns', isCorrect: true },
+                    { id: 'c', text: 'Measuring coolant temperature', isCorrect: false },
+                    { id: 'd', text: 'Testing brake pad thickness', isCorrect: false },
+                    { id: 'e', text: 'Checking transmission fluid condition', isCorrect: false }
+                ],
+                explanation: 'Fuel injector waveforms reveal injector response time, hold current, and pintle movement, allowing diagnosis of clogged, stuck, or electrically faulty injectors.'
             }
         }
     ]
 };
 
-// Track used tasks to prevent repetition - uses localStorage for ALL-TIME tracking
-const usedTasks = {
+// Track used questions to prevent repetition
+const usedQuestions = {
     easy: [],
     medium: [],
     hard: []
 };
 
-// Try to load history from localStorage (persistent across sessions)
+// Try to load history from localStorage
 try {
-    const saved = localStorage.getItem('toolSelectionCompletedTasks');
+    const saved = localStorage.getItem('toolChallengeCompletedQuestions');
     if (saved) {
         const parsed = JSON.parse(saved);
-        Object.assign(usedTasks, parsed);
+        Object.assign(usedQuestions, parsed);
     }
 } catch (e) {
-    // localStorage not available, continue with empty history
+    // localStorage not available
 }
 
 // Save history to localStorage
-const saveTaskHistory = () => {
+const saveQuestionHistory = () => {
     try {
-        localStorage.setItem('toolSelectionCompletedTasks', JSON.stringify(usedTasks));
+        localStorage.setItem('toolChallengeCompletedQuestions', JSON.stringify(usedQuestions));
     } catch (e) {
-        // localStorage not available, continue without saving
+        // localStorage not available
     }
 };
 
 /**
- * Get remaining plays for Tool Selection (all-time based on tasks completed)
+ * Get remaining plays for Tool Challenge
  * @returns {Object} - { easy: number, medium: number, hard: number }
  */
 export const getRemainingToolSelectionPlays = () => {
     return {
-        easy: Math.max(0, FALLBACK_TASKS.easy.length - usedTasks.easy.length),
-        medium: Math.max(0, FALLBACK_TASKS.medium.length - usedTasks.medium.length),
-        hard: Math.max(0, FALLBACK_TASKS.hard.length - usedTasks.hard.length)
+        easy: Math.max(0, TOOL_CHALLENGE_QUESTIONS.easy.length - usedQuestions.easy.length),
+        medium: Math.max(0, TOOL_CHALLENGE_QUESTIONS.medium.length - usedQuestions.medium.length),
+        hard: Math.max(0, TOOL_CHALLENGE_QUESTIONS.hard.length - usedQuestions.hard.length)
     };
 };
 
 /**
- * Get total task counts per difficulty
+ * Get total question counts per difficulty
  * @returns {Object} - { easy: number, medium: number, hard: number }
  */
 export const getToolSelectionTaskCounts = () => {
     return {
-        easy: FALLBACK_TASKS.easy.length,
-        medium: FALLBACK_TASKS.medium.length,
-        hard: FALLBACK_TASKS.hard.length
+        easy: TOOL_CHALLENGE_QUESTIONS.easy.length,
+        medium: TOOL_CHALLENGE_QUESTIONS.medium.length,
+        hard: TOOL_CHALLENGE_QUESTIONS.hard.length
     };
 };
 
 /**
- * Get a random task for the given difficulty
+ * Get a random question for the given difficulty
  * @param {string} difficulty - 'easy', 'medium', or 'hard'
- * @returns {Object|null} Task object or null if all completed
+ * @returns {Object|null} Question object or null if all completed
  */
 export const getToolSelectionTask = (difficulty = 'easy') => {
-    const tasks = FALLBACK_TASKS[difficulty] || FALLBACK_TASKS.easy;
-    const used = usedTasks[difficulty] || [];
+    const questions = TOOL_CHALLENGE_QUESTIONS[difficulty] || TOOL_CHALLENGE_QUESTIONS.easy;
+    const used = usedQuestions[difficulty] || [];
 
-    // Get available tasks (not yet used)
-    let availableTasks = tasks.filter(t => !used.includes(t.id));
+    // Get available questions (not yet used)
+    let availableQuestions = questions.filter(q => !used.includes(q.id));
 
-    // If all tasks have been completed, return null (all done!)
-    if (availableTasks.length === 0) {
-        return null; // Player completed all tasks for this difficulty
+    // If all questions have been completed, return null
+    if (availableQuestions.length === 0) {
+        return null;
     }
 
-    // Select a random task from available ones
-    const task = availableTasks[Math.floor(Math.random() * availableTasks.length)];
+    // Select a random question from available ones
+    const question = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
 
-    // Mark this task as used
-    usedTasks[difficulty].push(task.id);
-    saveTaskHistory();
+    // Mark this question as used
+    usedQuestions[difficulty].push(question.id);
+    saveQuestionHistory();
 
-    // Convert tool IDs to full tool objects
+    // Shuffle options for both main question and twist
+    const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
+    const shuffledTwistOptions = question.twist
+        ? [...question.twist.options].sort(() => Math.random() - 0.5)
+        : [];
+
     return {
-        ...task,
+        ...question,
         difficulty,
-        requiredTools: getTools(task.requiredTools),
-        toolbox: getTools(task.toolbox).sort(() => Math.random() - 0.5) // Shuffle toolbox
+        options: shuffledOptions,
+        twist: question.twist ? {
+            ...question.twist,
+            options: shuffledTwistOptions
+        } : null
     };
-};
-
-// Reset task history (useful for testing or replay)
-export const resetToolSelectionHistory = () => {
-    usedTasks.easy = [];
-    usedTasks.medium = [];
-    usedTasks.hard = [];
-    saveTaskHistory();
 };
 
 /**
- * Evaluate the student's tool selection
- * @param {Object} task - The task object
- * @param {string[]} selectedToolIds - Array of selected tool IDs
+ * Reset question history
+ */
+export const resetToolSelectionHistory = () => {
+    usedQuestions.easy = [];
+    usedQuestions.medium = [];
+    usedQuestions.hard = [];
+    saveQuestionHistory();
+};
+
+/**
+ * Evaluate the student's answer
+ * @param {Object} question - The question object
+ * @param {string} selectedOptionId - The selected option ID
+ * @param {boolean} isTwist - Whether this is the twist question
  * @returns {Object} Evaluation result
  */
-export const evaluateToolSelection = (task, selectedToolIds) => {
-    const requiredIds = task.requiredTools.map(t => t.id);
-    const selectedSet = new Set(selectedToolIds);
-    const requiredSet = new Set(requiredIds);
+export const evaluateToolSelection = (question, selectedOptionId, isTwist = false) => {
+    const questionPart = isTwist ? question.twist : question;
+    const correctOption = questionPart.options.find(opt => opt.isCorrect);
+    const isCorrect = selectedOptionId === correctOption?.id;
 
-    const correct = selectedToolIds.filter(id => requiredSet.has(id));
-    const incorrect = selectedToolIds.filter(id => !requiredSet.has(id));
-    const missed = requiredIds.filter(id => !selectedSet.has(id));
-
-    // Scoring
-    const correctPoints = correct.length * 20;
-    const incorrectPenalty = incorrect.length * 10;
-    const missedPenalty = missed.length * 5;
-    const rawScore = Math.max(0, correctPoints - incorrectPenalty - missedPenalty);
-
-    // Difficulty multiplier
-    const multipliers = { easy: 1, medium: 1.5, hard: 2 };
-    const finalScore = Math.round(rawScore * (multipliers[task.difficulty] || 1));
-
-    // Perfect score check
-    const isPerfect = correct.length === requiredIds.length && incorrect.length === 0;
+    // Scoring based on difficulty
+    const basePoints = { easy: 10, medium: 20, hard: 30 };
+    const twistBonus = isTwist ? 1.5 : 1;
+    const score = isCorrect ? Math.round(basePoints[question.difficulty] * twistBonus) : 0;
 
     return {
-        isPerfect,
-        score: finalScore,
-        correct: getTools(correct),
-        incorrect: getTools(incorrect),
-        missed: getTools(missed),
-        explanations: task.explanations,
-        feedback: isPerfect
-            ? 'Perfect! You selected exactly the right tools for this job.'
-            : `You got ${correct.length}/${requiredIds.length} correct. ${incorrect.length > 0 ? `${incorrect.length} unnecessary tools selected. ` : ''}${missed.length > 0 ? `${missed.length} required tools missed.` : ''}`
+        isCorrect,
+        isPerfect: isCorrect,
+        score,
+        correctAnswer: correctOption,
+        explanation: questionPart.explanation,
+        feedback: isCorrect
+            ? 'Correct! ' + questionPart.explanation
+            : `Incorrect. The correct answer was "${correctOption?.text}". ${questionPart.explanation}`
     };
 };
+
+// Export questions for reference
+export const TOOL_DATABASE = TOOL_CHALLENGE_QUESTIONS;
