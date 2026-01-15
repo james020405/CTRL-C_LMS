@@ -42,3 +42,11 @@ database/
 
 # Dev context notes (local only)
 .dev-context.md
+
+# Documentation/presentation files (local only)
+system_architecture.html
+CTRL-C-Project-Plan*.pdf
+*.pdf
+
+activity_diagram_audit.html
+student_activity_audit.html
