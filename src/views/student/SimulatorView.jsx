@@ -383,7 +383,7 @@ export default function SimulatorView() {
                     {/* Hover tooltip */}
                     {hoveredPart && (
                         <div className="absolute top-4 left-4 bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium pointer-events-none">
-                            {hoveredPart}
+                            {getPartName(hoveredPart, currentSystem)}
                         </div>
                     )}
 
@@ -394,7 +394,7 @@ export default function SimulatorView() {
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-                                            {selectedPart}
+                                            {getPartName(selectedPart, currentSystem)}
                                         </h3>
                                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                                             {getPartDescription(selectedPart)}
